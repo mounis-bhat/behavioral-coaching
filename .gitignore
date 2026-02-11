@@ -1,0 +1,32 @@
+# Go
+tmp/
+dist/
+
+# Generated docs
+docs/docs.go
+docs/swagger.json
+docs/swagger.yaml
+docs/openapi.json
+
+# SvelteKit build output (embedded in Go binary)
+assets/static/*
+!assets/static/.gitkeep
+
+# Environment (keep .env.example for reference)
+.env
+.env.local
+.env.*.local
+.env.production
+.env.development
+!.env.example
+
+# IDE
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+
+# Genkit
+.genkit/
