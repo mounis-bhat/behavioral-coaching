@@ -10,6 +10,30 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type AdaptationLog struct {
+	ID                 pgtype.UUID        `json:"id"`
+	UserID             pgtype.UUID        `json:"user_id"`
+	AdaptationReason   string             `json:"adaptation_reason"`
+	DifficultyChange   pgtype.Numeric     `json:"difficulty_change"`
+	PreviousDifficulty pgtype.Numeric     `json:"previous_difficulty"`
+	NewDifficulty      pgtype.Numeric     `json:"new_difficulty"`
+	TriggerMetrics     []byte             `json:"trigger_metrics"`
+	CreatedAt          pgtype.Timestamptz `json:"created_at"`
+}
+
+type AdherenceState struct {
+	ID                 pgtype.UUID        `json:"id"`
+	UserID             pgtype.UUID        `json:"user_id"`
+	CompletionRate     pgtype.Numeric     `json:"completion_rate"`
+	StreakCount        int32              `json:"streak_count"`
+	TotalTasks         int32              `json:"total_tasks"`
+	CompletedTasks     int32              `json:"completed_tasks"`
+	DifficultyMismatch bool               `json:"difficulty_mismatch"`
+	LastComputedAt     pgtype.Timestamptz `json:"last_computed_at"`
+	CreatedAt          pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt          pgtype.Timestamptz `json:"updated_at"`
+}
+
 type AuditLog struct {
 	ID        pgtype.UUID        `json:"id"`
 	UserID    pgtype.UUID        `json:"user_id"`
@@ -18,6 +42,49 @@ type AuditLog struct {
 	UserAgent pgtype.Text        `json:"user_agent"`
 	Metadata  []byte             `json:"metadata"`
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
+}
+
+type BehaviorProfile struct {
+	ID                  pgtype.UUID        `json:"id"`
+	UserID              pgtype.UUID        `json:"user_id"`
+	Goals               []byte             `json:"goals"`
+	Constraints         []byte             `json:"constraints"`
+	PsychologicalState  []byte             `json:"psychological_state"`
+	DifficultyLevel     pgtype.Numeric     `json:"difficulty_level"`
+	OnboardingCompleted bool               `json:"onboarding_completed"`
+	CreatedAt           pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt           pgtype.Timestamptz `json:"updated_at"`
+}
+
+type DailyPlan struct {
+	ID              pgtype.UUID        `json:"id"`
+	UserID          pgtype.UUID        `json:"user_id"`
+	PlanDate        pgtype.Date        `json:"plan_date"`
+	DifficultyScore pgtype.Numeric     `json:"difficulty_score"`
+	Status          string             `json:"status"`
+	CreatedAt       pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
+}
+
+type ExecutionLog struct {
+	ID          pgtype.UUID        `json:"id"`
+	PlanTaskID  pgtype.UUID        `json:"plan_task_id"`
+	UserID      pgtype.UUID        `json:"user_id"`
+	Completed   bool               `json:"completed"`
+	CompletedAt pgtype.Timestamptz `json:"completed_at"`
+	Notes       string             `json:"notes"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+}
+
+type PlanTask struct {
+	ID          pgtype.UUID        `json:"id"`
+	DailyPlanID pgtype.UUID        `json:"daily_plan_id"`
+	Title       string             `json:"title"`
+	Description string             `json:"description"`
+	Category    string             `json:"category"`
+	Difficulty  pgtype.Numeric     `json:"difficulty"`
+	Position    int32              `json:"position"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
 }
 
 type Session struct {
@@ -40,10 +107,10 @@ type User struct {
 	PasswordHash               pgtype.Text        `json:"password_hash"`
 	Provider                   string             `json:"provider"`
 	GoogleID                   pgtype.Text        `json:"google_id"`
-	EmailVerificationTokenHash pgtype.Text        `json:"email_verification_token_hash"`
-	EmailVerificationExpiresAt pgtype.Timestamptz `json:"email_verification_expires_at"`
 	FailedLoginAttempts        int32              `json:"failed_login_attempts"`
 	LockedUntil                pgtype.Timestamptz `json:"locked_until"`
 	CreatedAt                  pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt                  pgtype.Timestamptz `json:"updated_at"`
+	EmailVerificationTokenHash pgtype.Text        `json:"email_verification_token_hash"`
+	EmailVerificationExpiresAt pgtype.Timestamptz `json:"email_verification_expires_at"`
 }

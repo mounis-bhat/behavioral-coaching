@@ -870,6 +870,507 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/behavior/adherence": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get adherence metrics
+         * @description Returns the current adherence metrics for the authenticated user
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["behavior.AdherenceResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/behavior/plan/generate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Generate daily plan
+         * @description Generates a new daily plan based on the user's behavior profile
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["behavior.PlanResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/behavior/plan/today": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get today's plan
+         * @description Returns the active daily plan for today with all tasks
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["behavior.PlanResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/behavior/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get behavior profile
+         * @description Returns the behavior profile for the authenticated user
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["behavior.ProfileResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+            };
+        };
+        /**
+         * Update behavior profile
+         * @description Updates the behavior profile for the authenticated user
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Profile update request */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["behavior.UpdateProfileInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["behavior.ProfileResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+            };
+        };
+        /**
+         * Create behavior profile
+         * @description Creates a behavior profile with goals, constraints, and psychological state
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Profile creation request */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["behavior.CreateProfileInput"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["behavior.ProfileResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/behavior/tasks/{taskID}/log": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Log task execution
+         * @description Records execution status for a specific plan task
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Plan task ID */
+                    taskID: string;
+                };
+                cookie?: never;
+            };
+            /** @description Execution log request */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["behavior.LogExecutionInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["behavior.ExecutionLogResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -903,72 +1404,6 @@ export interface paths {
         };
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/recipes/generate": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Generate a recipe
-         * @description Uses AI to generate a recipe based on ingredients and dietary restrictions
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            /** @description Recipe generation request */
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["api.RecipeRequest"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["api.Recipe"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-                /** @description Internal Server Error */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-            };
-        };
         delete?: never;
         options?: never;
         head?: never;
@@ -1035,48 +1470,6 @@ export interface components {
             /** @example ok */
             status?: string;
         };
-        /** @description Generated recipe */
-        "api.Recipe": {
-            /** @example 25 minutes */
-            cookTime: string;
-            /** @example A delicious and healthy grilled chicken recipe */
-            description: string;
-            /**
-             * @example [
-             *       "chicken breast",
-             *       "lemon",
-             *       "herbs"
-             *     ]
-             */
-            ingredients: string[];
-            /**
-             * @example [
-             *       "Marinate chicken",
-             *       "Preheat grill",
-             *       "Grill for 12 minutes"
-             *     ]
-             */
-            instructions: string[];
-            /** @example 15 minutes */
-            prepTime: string;
-            /** @example 4 */
-            servings: number;
-            /**
-             * @example [
-             *       "Let rest for 5 minutes before serving"
-             *     ]
-             */
-            tips?: string[];
-            /** @example Grilled Lemon Herb Chicken */
-            title: string;
-        };
-        /** @description Recipe generation request */
-        "api.RecipeRequest": {
-            /** @example gluten-free */
-            dietaryRestrictions?: string;
-            /** @example chicken */
-            ingredient: string;
-        };
         /** @description Registration request */
         "api.RegisterRequest": {
             /** @example user@example.com */
@@ -1085,6 +1478,80 @@ export interface components {
             name: string;
             /** @example verysecurepassword */
             password: string;
+        };
+        /** @description Adherence metrics response */
+        "behavior.AdherenceResponse": {
+            completed_tasks?: number;
+            completion_rate?: number;
+            difficulty_mismatch?: boolean;
+            id?: string;
+            last_computed_at?: string;
+            streak_count?: number;
+            total_tasks?: number;
+            user_id?: string;
+        };
+        /** @description Profile creation request */
+        "behavior.CreateProfileInput": {
+            constraints?: Record<string, never>;
+            difficulty_level?: number;
+            goals?: Record<string, never>;
+            psychological_state?: Record<string, never>;
+        };
+        /** @description Task execution log response */
+        "behavior.ExecutionLogResponse": {
+            completed?: boolean;
+            completed_at?: string;
+            created_at?: string;
+            id?: string;
+            notes?: string;
+            plan_task_id?: string;
+            user_id?: string;
+        };
+        /** @description Task execution log request */
+        "behavior.LogExecutionInput": {
+            completed?: boolean;
+            notes?: string;
+        };
+        /** @description Daily plan response */
+        "behavior.PlanResponse": {
+            created_at?: string;
+            difficulty_score?: number;
+            id?: string;
+            plan_date?: string;
+            status?: string;
+            tasks?: components["schemas"]["behavior.TaskResponse"][];
+            updated_at?: string;
+            user_id?: string;
+        };
+        /** @description Behavior profile response */
+        "behavior.ProfileResponse": {
+            constraints?: Record<string, never>;
+            created_at?: string;
+            difficulty_level?: number;
+            goals?: Record<string, never>;
+            id?: string;
+            onboarding_completed?: boolean;
+            psychological_state?: Record<string, never>;
+            updated_at?: string;
+            user_id?: string;
+        };
+        /** @description Plan task response */
+        "behavior.TaskResponse": {
+            category?: string;
+            created_at?: string;
+            description?: string;
+            difficulty?: number;
+            id?: string;
+            position?: number;
+            title?: string;
+        };
+        /** @description Profile update request */
+        "behavior.UpdateProfileInput": {
+            constraints?: Record<string, never>;
+            difficulty_level?: number;
+            goals?: Record<string, never>;
+            onboarding_completed?: boolean;
+            psychological_state?: Record<string, never>;
         };
     };
     responses: never;

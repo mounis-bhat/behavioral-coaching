@@ -3,7 +3,7 @@ package api
 import (
 	"net/http"
 
-	apprecipes "github.com/mounis-bhat/starter/internal/app/recipes"
+	"github.com/mounis-bhat/starter/internal/app/behavior"
 	"github.com/mounis-bhat/starter/internal/config"
 	"github.com/mounis-bhat/starter/internal/email"
 	"github.com/mounis-bhat/starter/internal/ratelimit"
@@ -11,7 +11,7 @@ import (
 	"github.com/mounis-bhat/starter/internal/storage/blob"
 )
 
-func NewRouter(cfg *config.Config, store *storage.Store, recipeService *apprecipes.Service, blobClient *blob.Client) *http.ServeMux {
+func NewRouter(cfg *config.Config, store *storage.Store, behaviorService *behavior.Service, blobClient *blob.Client) *http.ServeMux {
 	mux := http.NewServeMux()
 
 	var limiter RateLimiter
@@ -24,10 +24,10 @@ func NewRouter(cfg *config.Config, store *storage.Store, recipeService *apprecip
 	}
 	authHandler := NewAuthHandler(store, cfg.Auth, cfg.Google, cfg.Email, cfg.RateLimit, limiter, mailer)
 	avatarHandler := NewAvatarHandler(store, blobClient, cfg.Storage)
+	behaviorHandler := NewBehaviorHandler(behaviorService)
 
 	// API routes
 	mux.HandleFunc("GET /api/health", handleHealth)
-	mux.Handle("POST /api/recipes/generate", authHandler.RequireAuth(makeRecipeHandler(recipeService)))
 
 	// Auth routes
 	mux.HandleFunc("POST /api/auth/register", authHandler.HandleRegister)
@@ -42,6 +42,15 @@ func NewRouter(cfg *config.Config, store *storage.Store, recipeService *apprecip
 	mux.Handle("POST /api/auth/logout", authHandler.RequireAuth(http.HandlerFunc(authHandler.HandleLogout)))
 	mux.Handle("POST /api/auth/password", authHandler.RequireAuth(http.HandlerFunc(authHandler.HandleChangePassword)))
 	mux.Handle("POST /api/auth/verify-email/resend", authHandler.RequireAuth(http.HandlerFunc(authHandler.HandleResendVerification)))
+
+	// Behavior routes
+	mux.Handle("POST /api/behavior/profile", authHandler.RequireAuth(http.HandlerFunc(behaviorHandler.HandleCreateProfile)))
+	mux.Handle("GET /api/behavior/profile", authHandler.RequireAuth(http.HandlerFunc(behaviorHandler.HandleGetProfile)))
+	mux.Handle("PUT /api/behavior/profile", authHandler.RequireAuth(http.HandlerFunc(behaviorHandler.HandleUpdateProfile)))
+	mux.Handle("POST /api/behavior/plan/generate", authHandler.RequireAuth(http.HandlerFunc(behaviorHandler.HandleGeneratePlan)))
+	mux.Handle("GET /api/behavior/plan/today", authHandler.RequireAuth(http.HandlerFunc(behaviorHandler.HandleGetTodaysPlan)))
+	mux.Handle("POST /api/behavior/tasks/{taskID}/log", authHandler.RequireAuth(http.HandlerFunc(behaviorHandler.HandleLogExecution)))
+	mux.Handle("GET /api/behavior/adherence", authHandler.RequireAuth(http.HandlerFunc(behaviorHandler.HandleGetAdherence)))
 
 	// Documentation routes (dev only)
 	if cfg.Env == "development" {

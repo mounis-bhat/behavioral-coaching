@@ -3,16 +3,16 @@
 -- name: CreateUser :one
 INSERT INTO users (email, email_verified, name, picture, password_hash, provider, google_id)
 VALUES ($1, $2, $3, $4, $5, $6, $7)
-RETURNING id, email, email_verified, name, picture, password_hash, provider, google_id, email_verification_token_hash, email_verification_expires_at, failed_login_attempts, locked_until, created_at, updated_at;
+RETURNING *;
 
 -- name: GetUserByID :one
-SELECT id, email, email_verified, name, picture, password_hash, provider, google_id, email_verification_token_hash, email_verification_expires_at, failed_login_attempts, locked_until, created_at, updated_at FROM users WHERE id = $1;
+SELECT * FROM users WHERE id = $1;
 
 -- name: GetUserByEmail :one
-SELECT id, email, email_verified, name, picture, password_hash, provider, google_id, email_verification_token_hash, email_verification_expires_at, failed_login_attempts, locked_until, created_at, updated_at FROM users WHERE email = $1;
+SELECT * FROM users WHERE email = $1;
 
 -- name: GetUserByGoogleID :one
-SELECT id, email, email_verified, name, picture, password_hash, provider, google_id, email_verification_token_hash, email_verification_expires_at, failed_login_attempts, locked_until, created_at, updated_at FROM users WHERE google_id = $1;
+SELECT * FROM users WHERE google_id = $1;
 
 -- name: UpsertUserByGoogleID :one
 INSERT INTO users (email, email_verified, name, picture, password_hash, provider, google_id)
@@ -23,7 +23,7 @@ SET email = EXCLUDED.email,
     name = EXCLUDED.name,
     picture = EXCLUDED.picture,
     provider = 'google'
-RETURNING id, email, email_verified, name, picture, password_hash, provider, google_id, email_verification_token_hash, email_verification_expires_at, failed_login_attempts, locked_until, created_at, updated_at;
+RETURNING *;
 
 -- name: UpdateUser :one
 UPDATE users
@@ -32,7 +32,7 @@ SET name = COALESCE(sqlc.narg('name'), name),
     email_verified = COALESCE(sqlc.narg('email_verified'), email_verified),
     password_hash = COALESCE(sqlc.narg('password_hash'), password_hash)
 WHERE id = sqlc.arg('id')
-RETURNING id, email, email_verified, name, picture, password_hash, provider, google_id, email_verification_token_hash, email_verification_expires_at, failed_login_attempts, locked_until, created_at, updated_at;
+RETURNING *;
 
 -- name: SetEmailVerificationToken :exec
 UPDATE users
@@ -41,7 +41,7 @@ SET email_verification_token_hash = $2,
 WHERE id = $1;
 
 -- name: GetUserByEmailVerificationTokenHash :one
-SELECT id, email, email_verified, name, picture, password_hash, provider, google_id, email_verification_token_hash, email_verification_expires_at, failed_login_attempts, locked_until, created_at, updated_at
+SELECT *
 FROM users
 WHERE email_verification_token_hash = $1;
 
@@ -51,7 +51,7 @@ SET email_verified = TRUE,
     email_verification_token_hash = NULL,
     email_verification_expires_at = NULL
 WHERE id = $1
-RETURNING id, email, email_verified, name, picture, password_hash, provider, google_id, email_verification_token_hash, email_verification_expires_at, failed_login_attempts, locked_until, created_at, updated_at;
+RETURNING *;
 
 -- name: UpdateUserPassword :exec
 UPDATE users

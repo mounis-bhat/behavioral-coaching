@@ -6,9 +6,8 @@ import (
 	"net/http"
 	"time"
 
-	airecipes "github.com/mounis-bhat/starter/internal/ai/recipes"
 	"github.com/mounis-bhat/starter/internal/api"
-	apprecipes "github.com/mounis-bhat/starter/internal/app/recipes"
+	"github.com/mounis-bhat/starter/internal/app/behavior"
 	"github.com/mounis-bhat/starter/internal/config"
 	"github.com/mounis-bhat/starter/internal/service"
 	"github.com/mounis-bhat/starter/internal/storage"
@@ -31,19 +30,18 @@ func main() {
 	cfg := config.Load()
 
 	// Initialize Genkit with the Google AI plugin
-	g := genkit.Init(ctx,
+	_ = genkit.Init(ctx,
 		genkit.WithPlugins(&googlegenai.GoogleAI{}),
 		genkit.WithDefaultModel("googleai/gemini-2.5-flash"),
 	)
-
-	recipeGenerator := airecipes.NewGenkitGenerator(g)
-	recipeService := apprecipes.NewService(recipeGenerator)
 
 	store, err := storage.New(ctx, cfg.Database)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer store.Close()
+
+	behaviorService := behavior.NewService(store.Queries)
 
 	blobClient, err := blob.New(ctx, blob.Config{
 		Endpoint:           cfg.Storage.Endpoint,
@@ -87,7 +85,7 @@ func main() {
 	}
 
 	// Setup router
-	mux := api.NewRouter(cfg, store, recipeService, blobClient)
+	mux := api.NewRouter(cfg, store, behaviorService, blobClient)
 	root := http.NewServeMux()
 	root.Handle("/", api.WithSecurityHeaders(cfg, mux))
 

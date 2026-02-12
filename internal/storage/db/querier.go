@@ -12,20 +12,39 @@ import (
 
 type Querier interface {
 	CountUserSessions(ctx context.Context, userID pgtype.UUID) (int64, error)
+	// Adaptation Logs
+	CreateAdaptationLog(ctx context.Context, arg CreateAdaptationLogParams) (AdaptationLog, error)
 	// Audit logs
 	CreateAuditLog(ctx context.Context, arg CreateAuditLogParams) error
+	// Behavior Profiles
+	CreateBehaviorProfile(ctx context.Context, arg CreateBehaviorProfileParams) (BehaviorProfile, error)
+	// Daily Plans
+	CreateDailyPlan(ctx context.Context, arg CreateDailyPlanParams) (DailyPlan, error)
+	// Plan Tasks
+	CreatePlanTask(ctx context.Context, arg CreatePlanTaskParams) (PlanTask, error)
 	// Sessions
 	CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error)
 	// Users
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
+	DeleteBehaviorProfile(ctx context.Context, userID pgtype.UUID) error
 	DeleteExpiredSessions(ctx context.Context) error
 	DeleteSession(ctx context.Context, id pgtype.UUID) error
 	DeleteSessionByTokenHash(ctx context.Context, tokenHash string) error
 	DeleteUserSessions(ctx context.Context, userID pgtype.UUID) error
+	GetActiveDailyPlan(ctx context.Context, userID pgtype.UUID) (DailyPlan, error)
+	GetAdaptationLogsByUser(ctx context.Context, arg GetAdaptationLogsByUserParams) ([]AdaptationLog, error)
+	GetAdherenceStateByUserID(ctx context.Context, userID pgtype.UUID) (AdherenceState, error)
+	GetBehaviorProfileByUserID(ctx context.Context, userID pgtype.UUID) (BehaviorProfile, error)
+	GetDailyPlanByUserAndDate(ctx context.Context, arg GetDailyPlanByUserAndDateParams) (DailyPlan, error)
+	GetExecutionLogsByDailyPlan(ctx context.Context, dailyPlanID pgtype.UUID) ([]ExecutionLog, error)
+	GetExecutionLogsByUser(ctx context.Context, arg GetExecutionLogsByUserParams) ([]ExecutionLog, error)
 	GetOldestUserSession(ctx context.Context, userID pgtype.UUID) (Session, error)
+	GetPlanTaskByID(ctx context.Context, id pgtype.UUID) (PlanTask, error)
+	GetPlanTasksByDailyPlan(ctx context.Context, dailyPlanID pgtype.UUID) ([]PlanTask, error)
+	GetRecentDailyPlans(ctx context.Context, arg GetRecentDailyPlansParams) ([]DailyPlan, error)
 	GetSessionByTokenHash(ctx context.Context, tokenHash string) (GetSessionByTokenHashRow, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
-	GetUserByEmailVerificationTokenHash(ctx context.Context, emailVerificationTokenHash string) (User, error)
+	GetUserByEmailVerificationTokenHash(ctx context.Context, emailVerificationTokenHash pgtype.Text) (User, error)
 	GetUserByGoogleID(ctx context.Context, googleID pgtype.Text) (User, error)
 	GetUserByID(ctx context.Context, id pgtype.UUID) (User, error)
 	IncrementFailedLoginAttempts(ctx context.Context, id pgtype.UUID) (User, error)
@@ -34,9 +53,15 @@ type Querier interface {
 	ResetFailedLoginAttempts(ctx context.Context, id pgtype.UUID) error
 	SetEmailVerificationToken(ctx context.Context, arg SetEmailVerificationTokenParams) error
 	UnlockUser(ctx context.Context, id pgtype.UUID) error
+	UpdateBehaviorProfile(ctx context.Context, arg UpdateBehaviorProfileParams) (BehaviorProfile, error)
+	UpdateDailyPlanStatus(ctx context.Context, arg UpdateDailyPlanStatusParams) (DailyPlan, error)
 	UpdateSessionLastActive(ctx context.Context, id pgtype.UUID) error
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error)
 	UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error
+	// Adherence States
+	UpsertAdherenceState(ctx context.Context, arg UpsertAdherenceStateParams) (AdherenceState, error)
+	// Execution Logs
+	UpsertExecutionLog(ctx context.Context, arg UpsertExecutionLogParams) (ExecutionLog, error)
 	UpsertUserByGoogleID(ctx context.Context, arg UpsertUserByGoogleIDParams) (User, error)
 	VerifyUserEmail(ctx context.Context, id pgtype.UUID) (User, error)
 }

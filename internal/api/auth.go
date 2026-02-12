@@ -605,7 +605,7 @@ func (h *AuthHandler) HandleVerifyEmail(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	user, err := h.queries.GetUserByEmailVerificationTokenHash(r.Context(), domain.HashToken(token))
+	user, err := h.queries.GetUserByEmailVerificationTokenHash(r.Context(), pgtype.Text{String: domain.HashToken(token), Valid: true})
 	if err != nil {
 		h.writeVerificationResponse(w, r, http.StatusBadRequest, "Invalid verification link", "The verification token is missing or invalid.")
 		return
@@ -889,7 +889,7 @@ func (h *AuthHandler) sendVerificationEmail(ctx context.Context, user db.User, i
 	expiresAt := pgtype.Timestamptz{Time: time.Now().Add(emailVerificationTTL), Valid: true}
 	if err := h.queries.SetEmailVerificationToken(ctx, db.SetEmailVerificationTokenParams{
 		ID:                         user.ID,
-		EmailVerificationTokenHash: domain.HashToken(token),
+		EmailVerificationTokenHash: pgtype.Text{String: domain.HashToken(token), Valid: true},
 		EmailVerificationExpiresAt: expiresAt,
 	}); err != nil {
 		h.auditLogger.Log(ctx, "email_verification_token_failed", user.ID, ip, userAgent, map[string]any{
