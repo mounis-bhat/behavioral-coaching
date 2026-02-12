@@ -1,4 +1,4 @@
-.PHONY: dev dev-logs dev-go dev-web db db-stop db-drop valkey-flush swag types build run clean install help \
+.PHONY: dev dev-logs dev-go dev-web db db-stop db-drop db-reset valkey-flush swag types build run clean install help \
        migrate-up migrate-down migrate-status migrate-create sqlc
 
 # Default target
@@ -10,7 +10,8 @@ help:
 	@echo "  make dev-web        - Start SvelteKit dev server only"
 	@echo "  make db             - Start Postgres, Valkey, and MinIO"
 	@echo "  make db-stop        - Stop Postgres, Valkey, and MinIO"
-	@echo "  make db-drop        - Drop the Postgres database"
+	@echo "  make db-drop        - Drop and recreate the Postgres database"
+	@echo "  make db-reset       - Drop, recreate, and migrate the database"
 	@echo "  make valkey-flush   - Flush all Valkey keys"
 	@echo "  make migrate-up     - Run all pending migrations"
 	@echo "  make migrate-down   - Rollback last migration"
@@ -66,10 +67,12 @@ db-stop:
 	@$(LOAD_ENV) && docker compose down
 
 db-drop:
-	@$(LOAD_ENV) && docker compose exec -T postgres sh -c 'PGPASSWORD="$${POSTGRES_PASSWORD}" psql -U "$${POSTGRES_USER}" -d postgres -c "DROP DATABASE IF EXISTS $${POSTGRES_DB};"'
+	@$(LOAD_ENV) && docker compose exec -T postgres sh -c 'PGPASSWORD="$${POSTGRES_PASSWORD}" psql -U "$${POSTGRES_USER}" -d postgres -c "DROP DATABASE IF EXISTS $${POSTGRES_DB}" -c "CREATE DATABASE $${POSTGRES_DB} OWNER $${POSTGRES_USER}"'
+
+db-reset: db-drop migrate-up
 
 valkey-flush:
-	@$(LOAD_ENV) && docker compose exec -T valkey sh -c 'valkey-cli -a "$${VALKEY_PASSWORD}" FLUSHALL'
+	@$(LOAD_ENV) && docker compose exec -T valkey valkey-cli -a "$${VALKEY_PASSWORD}" FLUSHALL
 
 # Migrations (uses env vars from shell or .env.development)
 # URL-encodes the password to handle special characters
@@ -96,7 +99,7 @@ sqlc:
 
 # Code generation
 swag:
-	swag init -g main.go -o docs -d ./cmd/server,./internal/api,./internal/app,./internal/config,./internal/domain,./internal/storage
+	swag init -g main.go -o docs -d ./cmd/server,./internal/api,./internal/app/behavior,./internal/app/recipes,./internal/config,./internal/domain,./internal/storage
 
 types: swag
 	cd web && bun run generate:api-types
