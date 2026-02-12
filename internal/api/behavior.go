@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strconv"
 
 	"github.com/mounis-bhat/starter/internal/app/behavior"
 )
@@ -251,4 +252,62 @@ func (h *BehaviorHandler) HandleGetAdherence(w http.ResponseWriter, r *http.Requ
 	}
 
 	writeJSON(w, http.StatusOK, adherence)
+}
+
+// HandleGetAdaptations returns adaptation logs for the authenticated user
+// @Summary      Get adaptation logs
+// @Description  Returns recent adaptation logs showing plan difficulty adjustments
+// @Tags         behavior
+// @Produce      json
+// @Param        limit query int false "Number of logs to return" default(10)
+// @Success      200  {array}   behavior.AdaptationLogResponse
+// @Failure      401  {object}  map[string]string
+// @Failure      500  {object}  map[string]string
+// @Router       /behavior/adaptations [get]
+func (h *BehaviorHandler) HandleGetAdaptations(w http.ResponseWriter, r *http.Request) {
+	user, ok := userFromContext(r.Context())
+	if !ok {
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return
+	}
+
+	limit := 10
+	if l := r.URL.Query().Get("limit"); l != "" {
+		if parsed, err := strconv.Atoi(l); err == nil && parsed > 0 {
+			limit = parsed
+		}
+	}
+
+	logs, err := h.service.GetAdaptationLogs(r.Context(), user.ID, limit)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to get adaptations"})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, logs)
+}
+
+// HandleGetTodaysExecutionLogs returns today's execution logs for the authenticated user
+// @Summary      Get today's execution logs
+// @Description  Returns execution logs for today's active plan
+// @Tags         behavior
+// @Produce      json
+// @Success      200  {array}   behavior.ExecutionLogResponse
+// @Failure      401  {object}  map[string]string
+// @Failure      500  {object}  map[string]string
+// @Router       /behavior/plan/today/logs [get]
+func (h *BehaviorHandler) HandleGetTodaysExecutionLogs(w http.ResponseWriter, r *http.Request) {
+	user, ok := userFromContext(r.Context())
+	if !ok {
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return
+	}
+
+	logs, err := h.service.GetTodaysExecutionLogs(r.Context(), user.ID)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to get execution logs"})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, logs)
 }

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"math/big"
 	"time"
 
@@ -23,10 +24,12 @@ var (
 
 type Service struct {
 	queries *db.Queries
+	planner PlanGenerator
+	advisor AdaptationAdvisor
 }
 
-func NewService(queries *db.Queries) *Service {
-	return &Service{queries: queries}
+func NewService(queries *db.Queries, planner PlanGenerator, advisor AdaptationAdvisor) *Service {
+	return &Service{queries: queries, planner: planner, advisor: advisor}
 }
 
 func (s *Service) CreateProfile(ctx context.Context, userID string, input CreateProfileInput) (*ProfileResponse, error) {
@@ -133,11 +136,34 @@ func (s *Service) GenerateDailyPlan(ctx context.Context, userID string) (*PlanRe
 		return nil, fmt.Errorf("check existing plan: %w", err)
 	}
 
-	// Get profile difficulty or use default
+	// Get profile and adherence data for the AI planner
 	difficulty := 5.0
+	var completionRate float64
+	var streakCount int
 	profile, err := s.queries.GetBehaviorProfileByUserID(ctx, uid)
 	if err == nil {
 		difficulty = numericToFloat(profile.DifficultyLevel)
+	}
+
+	adherence, err := s.queries.GetAdherenceStateByUserID(ctx, uid)
+	if err == nil {
+		completionRate = numericToFloat(adherence.CompletionRate)
+		streakCount = int(adherence.StreakCount)
+	}
+
+	// Build the AI request from profile data
+	planReq := PlanRequest{
+		Goals:              defaultJSON(profile.Goals, []byte("[]")),
+		Constraints:        defaultJSON(profile.Constraints, []byte("{}")),
+		PsychologicalState: defaultJSON(profile.PsychologicalState, []byte("{}")),
+		DifficultyLevel:    difficulty,
+		CompletionRate:     completionRate,
+		StreakCount:         streakCount,
+	}
+
+	aiResult, err := s.planner.GeneratePlan(ctx, planReq)
+	if err != nil {
+		return nil, fmt.Errorf("ai plan generation: %w", err)
 	}
 
 	plan, err := s.queries.CreateDailyPlan(ctx, db.CreateDailyPlanParams{
@@ -150,28 +176,14 @@ func (s *Service) GenerateDailyPlan(ctx context.Context, userID string) (*PlanRe
 		return nil, fmt.Errorf("create daily plan: %w", err)
 	}
 
-	// Stubbed sample tasks — AI will generate these in Phase 2
-	sampleTasks := []struct {
-		title       string
-		description string
-		category    string
-		difficulty  float64
-	}{
-		{"Morning exercise", "30 minutes of moderate physical activity", "health", 5.0},
-		{"Gratitude journaling", "Write 3 things you are grateful for", "mindset", 3.0},
-		{"Deep work session", "90 minutes of focused work on your top priority", "productivity", 7.0},
-		{"Reach out to someone", "Send a meaningful message to a friend or family member", "relationships", 4.0},
-		{"Evening reflection", "Review what went well today and what to improve", "discipline", 3.0},
-	}
-
 	var tasks []db.PlanTask
-	for i, st := range sampleTasks {
+	for i, gt := range aiResult.Tasks {
 		task, err := s.queries.CreatePlanTask(ctx, db.CreatePlanTaskParams{
 			DailyPlanID: plan.ID,
-			Title:       st.title,
-			Description: st.description,
-			Category:    st.category,
-			Difficulty:  numericFromFloat(st.difficulty),
+			Title:       gt.Title,
+			Description: gt.Description,
+			Category:    gt.Category,
+			Difficulty:  numericFromFloat(gt.Difficulty),
 			Position:    int32(i + 1),
 		})
 		if err != nil {
@@ -242,7 +254,7 @@ func (s *Service) LogExecution(ctx context.Context, userID string, taskID string
 		completedAt = pgtype.Timestamptz{Time: time.Now(), Valid: true}
 	}
 
-	log, err := s.queries.UpsertExecutionLog(ctx, db.UpsertExecutionLogParams{
+	execLog, err := s.queries.UpsertExecutionLog(ctx, db.UpsertExecutionLogParams{
 		PlanTaskID:  tid,
 		UserID:      uid,
 		Completed:   input.Completed,
@@ -253,21 +265,32 @@ func (s *Service) LogExecution(ctx context.Context, userID string, taskID string
 		return nil, fmt.Errorf("upsert execution log: %w", err)
 	}
 
-	return executionLogToResponse(log), nil
+	// Best-effort: recompute adherence and trigger adaptation if needed
+	adherence, err := s.RecomputeAdherence(ctx, userID)
+	if err != nil {
+		log.Printf("warning: failed to recompute adherence after execution log: %v", err)
+	} else if adherence.DifficultyMismatch {
+		if adaptErr := s.AdaptUserPlan(ctx, userID); adaptErr != nil {
+			log.Printf("warning: failed to adapt user plan after mismatch: %v", adaptErr)
+		}
+	}
+
+	return executionLogToResponse(execLog), nil
 }
 
-// RecomputeAdherence is stubbed for Phase 1. Real implementation in Phase 3.
+// RecomputeAdherence computes real adherence metrics from today's plan and execution logs.
 func (s *Service) RecomputeAdherence(ctx context.Context, userID string) (*AdherenceResponse, error) {
 	uid, err := parseUUID(userID)
 	if err != nil {
 		return nil, err
 	}
 
-	state, err := s.queries.GetAdherenceStateByUserID(ctx, uid)
+	// Get today's active plan
+	plan, err := s.queries.GetActiveDailyPlan(ctx, uid)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			// Create initial zeroed state
-			state, err = s.queries.UpsertAdherenceState(ctx, db.UpsertAdherenceStateParams{
+			// No active plan today → upsert zeroed state
+			state, uErr := s.queries.UpsertAdherenceState(ctx, db.UpsertAdherenceStateParams{
 				UserID:             uid,
 				CompletionRate:     numericFromFloat(0),
 				StreakCount:        0,
@@ -275,20 +298,230 @@ func (s *Service) RecomputeAdherence(ctx context.Context, userID string) (*Adher
 				CompletedTasks:     0,
 				DifficultyMismatch: false,
 			})
-			if err != nil {
-				return nil, fmt.Errorf("create adherence state: %w", err)
+			if uErr != nil {
+				return nil, fmt.Errorf("upsert zeroed adherence state: %w", uErr)
 			}
-		} else {
-			return nil, fmt.Errorf("get adherence state: %w", err)
+			return adherenceToResponse(state), nil
 		}
+		return nil, fmt.Errorf("get active daily plan: %w", err)
+	}
+
+	// Get tasks and execution logs for today's plan
+	tasks, err := s.queries.GetPlanTasksByDailyPlan(ctx, plan.ID)
+	if err != nil {
+		return nil, fmt.Errorf("get plan tasks for adherence: %w", err)
+	}
+
+	logs, err := s.queries.GetExecutionLogsByDailyPlan(ctx, plan.ID)
+	if err != nil {
+		return nil, fmt.Errorf("get execution logs for adherence: %w", err)
+	}
+
+	// Compute completion metrics
+	totalTasks := len(tasks)
+	var completedTasks int
+	for _, l := range logs {
+		if l.Completed {
+			completedTasks++
+		}
+	}
+
+	var completionRate float64
+	if totalTasks > 0 {
+		completionRate = float64(completedTasks) / float64(totalTasks)
+	}
+
+	// Compute streak: consecutive days with ≥70% completion
+	streakCount := s.computeStreak(ctx, uid)
+
+	// Detect difficulty mismatch: completion rate below 40%
+	difficultyMismatch := completionRate < 0.4 && totalTasks > 0
+
+	state, err := s.queries.UpsertAdherenceState(ctx, db.UpsertAdherenceStateParams{
+		UserID:             uid,
+		CompletionRate:     numericFromFloat(completionRate),
+		StreakCount:        int32(streakCount),
+		TotalTasks:         int32(totalTasks),
+		CompletedTasks:     int32(completedTasks),
+		DifficultyMismatch: difficultyMismatch,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("upsert adherence state: %w", err)
 	}
 
 	return adherenceToResponse(state), nil
 }
 
-// AdaptUserPlan is stubbed for Phase 1. Real implementation in Phase 3.
+// computeStreak counts consecutive recent days where the plan had ≥70% completion.
+func (s *Service) computeStreak(ctx context.Context, uid pgtype.UUID) int {
+	plans, err := s.queries.GetRecentDailyPlans(ctx, db.GetRecentDailyPlansParams{
+		UserID: uid,
+		Limit:  30,
+	})
+	if err != nil || len(plans) == 0 {
+		return 0
+	}
+
+	var streak int
+	for _, p := range plans {
+		tasks, err := s.queries.GetPlanTasksByDailyPlan(ctx, p.ID)
+		if err != nil || len(tasks) == 0 {
+			break
+		}
+
+		logs, err := s.queries.GetExecutionLogsByDailyPlan(ctx, p.ID)
+		if err != nil {
+			break
+		}
+
+		var completed int
+		for _, l := range logs {
+			if l.Completed {
+				completed++
+			}
+		}
+
+		rate := float64(completed) / float64(len(tasks))
+		if rate < 0.7 {
+			break
+		}
+		streak++
+	}
+
+	return streak
+}
+
+// AdaptUserPlan queries adherence metrics, asks the AI advisor for adaptation advice,
+// and applies changes (updates profile difficulty, creates adaptation log) when needed.
 func (s *Service) AdaptUserPlan(ctx context.Context, userID string) error {
+	uid, err := parseUUID(userID)
+	if err != nil {
+		return err
+	}
+
+	profile, err := s.queries.GetBehaviorProfileByUserID(ctx, uid)
+	if err != nil {
+		return fmt.Errorf("get profile for adaptation: %w", err)
+	}
+
+	adherence, err := s.queries.GetAdherenceStateByUserID(ctx, uid)
+	if err != nil {
+		// No adherence data yet — nothing to adapt
+		return nil
+	}
+
+	currentDifficulty := numericToFloat(profile.DifficultyLevel)
+	completionRate := numericToFloat(adherence.CompletionRate)
+	totalTasks := int(adherence.TotalTasks)
+	completedTasks := int(adherence.CompletedTasks)
+	streakCount := int(adherence.StreakCount)
+
+	req := AdaptationRequest{
+		Goals:              profile.Goals,
+		CurrentDifficulty:  currentDifficulty,
+		CompletionRate:     completionRate,
+		StreakCount:        streakCount,
+		TotalTasks:         totalTasks,
+		CompletedTasks:     completedTasks,
+		DifficultyMismatch: adherence.DifficultyMismatch,
+	}
+
+	result, err := s.advisor.Advise(ctx, req)
+	if err != nil {
+		return fmt.Errorf("ai adaptation advice: %w", err)
+	}
+
+	if !result.ShouldAdapt {
+		log.Printf("adaptation: no change needed for user %s (reason=%q)", userID, result.Reason)
+		return nil
+	}
+
+	// Update profile difficulty
+	_, err = s.queries.UpdateBehaviorProfile(ctx, db.UpdateBehaviorProfileParams{
+		UserID:          uid,
+		DifficultyLevel: numericFromFloat(result.NewDifficulty),
+	})
+	if err != nil {
+		return fmt.Errorf("update profile difficulty: %w", err)
+	}
+
+	// Marshal trigger metrics
+	triggerMetrics, err := json.Marshal(map[string]any{
+		"completion_rate":     completionRate,
+		"streak_count":        streakCount,
+		"total_tasks":         totalTasks,
+		"completed_tasks":     completedTasks,
+		"difficulty_mismatch": adherence.DifficultyMismatch,
+	})
+	if err != nil {
+		return fmt.Errorf("marshal trigger metrics: %w", err)
+	}
+
+	// Persist adaptation log
+	difficultyChange := result.NewDifficulty - currentDifficulty
+	_, err = s.queries.CreateAdaptationLog(ctx, db.CreateAdaptationLogParams{
+		UserID:             uid,
+		AdaptationReason:   result.Reason,
+		DifficultyChange:   numericFromFloat(difficultyChange),
+		PreviousDifficulty: numericFromFloat(currentDifficulty),
+		NewDifficulty:      numericFromFloat(result.NewDifficulty),
+		TriggerMetrics:     triggerMetrics,
+	})
+	if err != nil {
+		return fmt.Errorf("create adaptation log: %w", err)
+	}
+
+	log.Printf("adaptation applied for user %s: difficulty %.1f → %.1f (reason=%q)",
+		userID, currentDifficulty, result.NewDifficulty, result.Reason)
+
 	return nil
+}
+
+func (s *Service) GetAdaptationLogs(ctx context.Context, userID string, limit int) ([]AdaptationLogResponse, error) {
+	uid, err := parseUUID(userID)
+	if err != nil {
+		return nil, err
+	}
+
+	logs, err := s.queries.GetAdaptationLogsByUser(ctx, db.GetAdaptationLogsByUserParams{
+		UserID: uid,
+		Limit:  int32(limit),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("get adaptation logs: %w", err)
+	}
+
+	resp := make([]AdaptationLogResponse, len(logs))
+	for i, l := range logs {
+		resp[i] = adaptationLogToResponse(l)
+	}
+	return resp, nil
+}
+
+func (s *Service) GetTodaysExecutionLogs(ctx context.Context, userID string) ([]ExecutionLogResponse, error) {
+	uid, err := parseUUID(userID)
+	if err != nil {
+		return nil, err
+	}
+
+	plan, err := s.queries.GetActiveDailyPlan(ctx, uid)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return []ExecutionLogResponse{}, nil
+		}
+		return nil, fmt.Errorf("get active daily plan: %w", err)
+	}
+
+	logs, err := s.queries.GetExecutionLogsByDailyPlan(ctx, plan.ID)
+	if err != nil {
+		return nil, fmt.Errorf("get execution logs: %w", err)
+	}
+
+	resp := make([]ExecutionLogResponse, len(logs))
+	for i, l := range logs {
+		resp[i] = *executionLogToResponse(l)
+	}
+	return resp, nil
 }
 
 // --- Helpers ---
@@ -396,6 +629,19 @@ func executionLogToResponse(l db.ExecutionLog) *ExecutionLogResponse {
 		resp.CompletedAt = &t
 	}
 	return resp
+}
+
+func adaptationLogToResponse(l db.AdaptationLog) AdaptationLogResponse {
+	return AdaptationLogResponse{
+		ID:                 uuidToString(l.ID),
+		UserID:             uuidToString(l.UserID),
+		AdaptationReason:   l.AdaptationReason,
+		DifficultyChange:   numericToFloat(l.DifficultyChange),
+		PreviousDifficulty: numericToFloat(l.PreviousDifficulty),
+		NewDifficulty:      numericToFloat(l.NewDifficulty),
+		TriggerMetrics:     json.RawMessage(l.TriggerMetrics),
+		CreatedAt:          l.CreatedAt.Time.Format(time.RFC3339),
+	}
 }
 
 func adherenceToResponse(a db.AdherenceState) *AdherenceResponse {

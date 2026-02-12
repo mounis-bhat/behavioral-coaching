@@ -6,8 +6,9 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/mounis-bhat/starter/internal/ai/behavior"
 	"github.com/mounis-bhat/starter/internal/api"
-	"github.com/mounis-bhat/starter/internal/app/behavior"
+	appbehavior "github.com/mounis-bhat/starter/internal/app/behavior"
 	"github.com/mounis-bhat/starter/internal/config"
 	"github.com/mounis-bhat/starter/internal/service"
 	"github.com/mounis-bhat/starter/internal/storage"
@@ -30,7 +31,7 @@ func main() {
 	cfg := config.Load()
 
 	// Initialize Genkit with the Google AI plugin
-	_ = genkit.Init(ctx,
+	g := genkit.Init(ctx,
 		genkit.WithPlugins(&googlegenai.GoogleAI{}),
 		genkit.WithDefaultModel("googleai/gemini-2.5-flash"),
 	)
@@ -41,7 +42,9 @@ func main() {
 	}
 	defer store.Close()
 
-	behaviorService := behavior.NewService(store.Queries)
+	planningAgent := behavior.NewPlanningAgent(g)
+	adaptationAdvisor := behavior.NewAdaptationAdvisor(g)
+	behaviorService := appbehavior.NewService(store.Queries, planningAgent, adaptationAdvisor)
 
 	blobClient, err := blob.New(ctx, blob.Config{
 		Endpoint:           cfg.Storage.Endpoint,

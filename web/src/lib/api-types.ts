@@ -870,6 +870,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/behavior/adaptations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get adaptation logs
+         * @description Returns recent adaptation logs showing plan difficulty adjustments
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Number of logs to return */
+                    limit?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["behavior.AdaptationLogResponse"][];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/behavior/adherence": {
         parameters: {
             query?: never;
@@ -1034,6 +1098,67 @@ export interface paths {
                 };
                 /** @description Not Found */
                 404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/behavior/plan/today/logs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get today's execution logs
+         * @description Returns execution logs for today's active plan
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["behavior.ExecutionLogResponse"][];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -1410,6 +1535,72 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/recipes/generate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Generate a recipe
+         * @description Uses AI to generate a recipe based on ingredients and dietary restrictions
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Recipe generation request */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["api.RecipeRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.Recipe"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1470,6 +1661,48 @@ export interface components {
             /** @example ok */
             status?: string;
         };
+        /** @description Generated recipe */
+        "api.Recipe": {
+            /** @example 25 minutes */
+            cookTime: string;
+            /** @example A delicious and healthy grilled chicken recipe */
+            description: string;
+            /**
+             * @example [
+             *       "chicken breast",
+             *       "lemon",
+             *       "herbs"
+             *     ]
+             */
+            ingredients: string[];
+            /**
+             * @example [
+             *       "Marinate chicken",
+             *       "Preheat grill",
+             *       "Grill for 12 minutes"
+             *     ]
+             */
+            instructions: string[];
+            /** @example 15 minutes */
+            prepTime: string;
+            /** @example 4 */
+            servings: number;
+            /**
+             * @example [
+             *       "Let rest for 5 minutes before serving"
+             *     ]
+             */
+            tips?: string[];
+            /** @example Grilled Lemon Herb Chicken */
+            title: string;
+        };
+        /** @description Recipe generation request */
+        "api.RecipeRequest": {
+            /** @example gluten-free */
+            dietaryRestrictions?: string;
+            /** @example chicken */
+            ingredient: string;
+        };
         /** @description Registration request */
         "api.RegisterRequest": {
             /** @example user@example.com */
@@ -1478,6 +1711,17 @@ export interface components {
             name: string;
             /** @example verysecurepassword */
             password: string;
+        };
+        /** @description Adaptation log response */
+        "behavior.AdaptationLogResponse": {
+            adaptation_reason?: string;
+            created_at?: string;
+            difficulty_change?: number;
+            id?: string;
+            new_difficulty?: number;
+            previous_difficulty?: number;
+            trigger_metrics?: Record<string, never>;
+            user_id?: string;
         };
         /** @description Adherence metrics response */
         "behavior.AdherenceResponse": {

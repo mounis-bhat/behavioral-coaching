@@ -1,6 +1,10 @@
 package behavior
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"fmt"
+	"slices"
+)
 
 // CreateProfileInput represents profile creation input
 // @Description Profile creation request
@@ -90,4 +94,89 @@ type AdherenceResponse struct {
 	CompletedTasks     int     `json:"completed_tasks"`
 	DifficultyMismatch bool    `json:"difficulty_mismatch"`
 	LastComputedAt     string  `json:"last_computed_at"`
+}
+
+// AdaptationLogResponse represents an adaptation log entry
+// @Description Adaptation log response
+type AdaptationLogResponse struct {
+	ID                 string          `json:"id"`
+	UserID             string          `json:"user_id"`
+	AdaptationReason   string          `json:"adaptation_reason"`
+	DifficultyChange   float64         `json:"difficulty_change"`
+	PreviousDifficulty float64         `json:"previous_difficulty"`
+	NewDifficulty      float64         `json:"new_difficulty"`
+	TriggerMetrics     json.RawMessage `json:"trigger_metrics" swaggertype:"object"`
+	CreatedAt          string          `json:"created_at"`
+}
+
+// --- AI Agent Request/Response Types ---
+
+var validCategories = []string{"health", "mindset", "discipline", "relationships", "productivity"}
+
+// PlanRequest is the input to the planning agent.
+type PlanRequest struct {
+	Goals              json.RawMessage `json:"goals"`
+	Constraints        json.RawMessage `json:"constraints"`
+	PsychologicalState json.RawMessage `json:"psychological_state"`
+	DifficultyLevel    float64         `json:"difficulty_level"`
+	CompletionRate     float64         `json:"completion_rate"`
+	StreakCount        int             `json:"streak_count"`
+}
+
+// PlanResult is the structured output from the planning agent.
+type PlanResult struct {
+	Tasks []GeneratedTask `json:"tasks"`
+}
+
+// GeneratedTask represents a single AI-generated task.
+type GeneratedTask struct {
+	Title       string  `json:"title"`
+	Description string  `json:"description"`
+	Category    string  `json:"category"`
+	Difficulty  float64 `json:"difficulty"`
+}
+
+// Validate checks that the PlanResult contains valid tasks.
+func (r *PlanResult) Validate() error {
+	if len(r.Tasks) == 0 {
+		return fmt.Errorf("plan must contain at least 1 task")
+	}
+	for i, t := range r.Tasks {
+		if !slices.Contains(validCategories, t.Category) {
+			return fmt.Errorf("task %d: invalid category %q", i, t.Category)
+		}
+		if t.Difficulty < 1.0 || t.Difficulty > 10.0 {
+			return fmt.Errorf("task %d: difficulty %.1f out of range [1.0, 10.0]", i, t.Difficulty)
+		}
+	}
+	return nil
+}
+
+// AdaptationRequest is the input to the adaptation agent.
+type AdaptationRequest struct {
+	Goals              json.RawMessage `json:"goals"`
+	CurrentDifficulty  float64         `json:"current_difficulty"`
+	CompletionRate     float64         `json:"completion_rate"`
+	StreakCount        int             `json:"streak_count"`
+	TotalTasks         int             `json:"total_tasks"`
+	CompletedTasks     int             `json:"completed_tasks"`
+	DifficultyMismatch bool            `json:"difficulty_mismatch"`
+}
+
+// AdaptationResult is the structured output from the adaptation agent.
+type AdaptationResult struct {
+	ShouldAdapt   bool    `json:"should_adapt"`
+	NewDifficulty float64 `json:"new_difficulty"`
+	Reason        string  `json:"reason"`
+}
+
+// Validate checks that the AdaptationResult is well-formed.
+func (r *AdaptationResult) Validate() error {
+	if r.NewDifficulty < 0.0 || r.NewDifficulty > 10.0 {
+		return fmt.Errorf("new_difficulty %.1f out of range [0.0, 10.0]", r.NewDifficulty)
+	}
+	if r.ShouldAdapt && r.Reason == "" {
+		return fmt.Errorf("reason must be non-empty when should_adapt is true")
+	}
+	return nil
 }

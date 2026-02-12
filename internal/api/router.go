@@ -51,6 +51,8 @@ func NewRouter(cfg *config.Config, store *storage.Store, behaviorService *behavi
 	mux.Handle("GET /api/behavior/plan/today", authHandler.RequireAuth(http.HandlerFunc(behaviorHandler.HandleGetTodaysPlan)))
 	mux.Handle("POST /api/behavior/tasks/{taskID}/log", authHandler.RequireAuth(http.HandlerFunc(behaviorHandler.HandleLogExecution)))
 	mux.Handle("GET /api/behavior/adherence", authHandler.RequireAuth(http.HandlerFunc(behaviorHandler.HandleGetAdherence)))
+	mux.Handle("GET /api/behavior/adaptations", authHandler.RequireAuth(http.HandlerFunc(behaviorHandler.HandleGetAdaptations)))
+	mux.Handle("GET /api/behavior/plan/today/logs", authHandler.RequireAuth(http.HandlerFunc(behaviorHandler.HandleGetTodaysExecutionLogs)))
 
 	// Documentation routes (dev only)
 	if cfg.Env == "development" {
