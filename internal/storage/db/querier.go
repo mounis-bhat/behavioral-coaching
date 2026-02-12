@@ -31,22 +31,33 @@ type Querier interface {
 	DeleteSession(ctx context.Context, id pgtype.UUID) error
 	DeleteSessionByTokenHash(ctx context.Context, tokenHash string) error
 	DeleteUserSessions(ctx context.Context, userID pgtype.UUID) error
+	// Scheduled Jobs
+	ExpireOldPlans(ctx context.Context) (int64, error)
 	GetActiveDailyPlan(ctx context.Context, userID pgtype.UUID) (DailyPlan, error)
 	GetAdaptationLogsByUser(ctx context.Context, arg GetAdaptationLogsByUserParams) ([]AdaptationLog, error)
 	GetAdherenceStateByUserID(ctx context.Context, userID pgtype.UUID) (AdherenceState, error)
 	GetBehaviorProfileByUserID(ctx context.Context, userID pgtype.UUID) (BehaviorProfile, error)
+	GetCategoryPerformance(ctx context.Context, userID pgtype.UUID) ([]GetCategoryPerformanceRow, error)
+	// Analytics Queries
+	// Replaces N+1 streak computation (60+ queries → 1)
+	GetDailyCompletionRates(ctx context.Context, arg GetDailyCompletionRatesParams) ([]GetDailyCompletionRatesRow, error)
 	GetDailyPlanByUserAndDate(ctx context.Context, arg GetDailyPlanByUserAndDateParams) (DailyPlan, error)
+	GetDifficultyTrajectory(ctx context.Context, userID pgtype.UUID) ([]GetDifficultyTrajectoryRow, error)
 	GetExecutionLogsByDailyPlan(ctx context.Context, dailyPlanID pgtype.UUID) ([]ExecutionLog, error)
 	GetExecutionLogsByUser(ctx context.Context, arg GetExecutionLogsByUserParams) ([]ExecutionLog, error)
+	GetInactiveUsers(ctx context.Context) ([]GetInactiveUsersRow, error)
 	GetOldestUserSession(ctx context.Context, userID pgtype.UUID) (Session, error)
 	GetPlanTaskByID(ctx context.Context, id pgtype.UUID) (PlanTask, error)
 	GetPlanTasksByDailyPlan(ctx context.Context, dailyPlanID pgtype.UUID) ([]PlanTask, error)
 	GetRecentDailyPlans(ctx context.Context, arg GetRecentDailyPlansParams) ([]DailyPlan, error)
+	GetRelapsingUsers(ctx context.Context) ([]GetRelapsingUsersRow, error)
 	GetSessionByTokenHash(ctx context.Context, tokenHash string) (GetSessionByTokenHashRow, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByEmailVerificationTokenHash(ctx context.Context, emailVerificationTokenHash pgtype.Text) (User, error)
 	GetUserByGoogleID(ctx context.Context, googleID pgtype.Text) (User, error)
 	GetUserByID(ctx context.Context, id pgtype.UUID) (User, error)
+	GetUsersNeedingReminder(ctx context.Context) ([]GetUsersNeedingReminderRow, error)
+	GetWeeklyCompletionTrends(ctx context.Context, userID pgtype.UUID) ([]GetWeeklyCompletionTrendsRow, error)
 	IncrementFailedLoginAttempts(ctx context.Context, id pgtype.UUID) (User, error)
 	LockUser(ctx context.Context, arg LockUserParams) error
 	PurgeAuditLogsBefore(ctx context.Context, createdAt pgtype.Timestamptz) (int64, error)
@@ -55,6 +66,7 @@ type Querier interface {
 	UnlockUser(ctx context.Context, id pgtype.UUID) error
 	UpdateBehaviorProfile(ctx context.Context, arg UpdateBehaviorProfileParams) (BehaviorProfile, error)
 	UpdateDailyPlanStatus(ctx context.Context, arg UpdateDailyPlanStatusParams) (DailyPlan, error)
+	UpdateProfileNotifiedAt(ctx context.Context, userID pgtype.UUID) error
 	UpdateSessionLastActive(ctx context.Context, id pgtype.UUID) error
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error)
 	UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error

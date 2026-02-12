@@ -11,16 +11,12 @@ import (
 	"github.com/mounis-bhat/starter/internal/storage/blob"
 )
 
-func NewRouter(cfg *config.Config, store *storage.Store, behaviorService *behavior.Service, blobClient *blob.Client) *http.ServeMux {
+func NewRouter(cfg *config.Config, store *storage.Store, behaviorService *behavior.Service, blobClient *blob.Client, mailer email.Mailer) *http.ServeMux {
 	mux := http.NewServeMux()
 
 	var limiter RateLimiter
 	if cfg.RateLimit.Enabled {
 		limiter = ratelimit.NewValkeyLimiter(cfg.Valkey.Addr(), cfg.Valkey.Password)
-	}
-	mailer, err := email.NewGmailMailer(cfg.Email.ContactEmail, cfg.Email.GmailAppPassword)
-	if err != nil {
-		mailer = nil
 	}
 	authHandler := NewAuthHandler(store, cfg.Auth, cfg.Google, cfg.Email, cfg.RateLimit, limiter, mailer)
 	avatarHandler := NewAvatarHandler(store, blobClient, cfg.Storage)
@@ -53,6 +49,7 @@ func NewRouter(cfg *config.Config, store *storage.Store, behaviorService *behavi
 	mux.Handle("GET /api/behavior/adherence", authHandler.RequireAuth(http.HandlerFunc(behaviorHandler.HandleGetAdherence)))
 	mux.Handle("GET /api/behavior/adaptations", authHandler.RequireAuth(http.HandlerFunc(behaviorHandler.HandleGetAdaptations)))
 	mux.Handle("GET /api/behavior/plan/today/logs", authHandler.RequireAuth(http.HandlerFunc(behaviorHandler.HandleGetTodaysExecutionLogs)))
+	mux.Handle("GET /api/behavior/analytics", authHandler.RequireAuth(http.HandlerFunc(behaviorHandler.HandleGetAnalytics)))
 
 	// Documentation routes (dev only)
 	if cfg.Env == "development" {

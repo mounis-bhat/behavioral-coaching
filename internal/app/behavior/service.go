@@ -171,6 +171,7 @@ func (s *Service) GenerateDailyPlan(ctx context.Context, userID string) (*PlanRe
 		PlanDate:        pgtype.Date{Time: time.Now(), Valid: true},
 		DifficultyScore: numericFromFloat(difficulty),
 		Status:          "active",
+		PromptVersion:   s.planner.PromptVersion(),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("create daily plan: %w", err)
@@ -353,41 +354,26 @@ func (s *Service) RecomputeAdherence(ctx context.Context, userID string) (*Adher
 }
 
 // computeStreak counts consecutive recent days where the plan had ≥70% completion.
+// Uses a single query instead of N+1.
 func (s *Service) computeStreak(ctx context.Context, uid pgtype.UUID) int {
-	plans, err := s.queries.GetRecentDailyPlans(ctx, db.GetRecentDailyPlansParams{
+	rates, err := s.queries.GetDailyCompletionRates(ctx, db.GetDailyCompletionRatesParams{
 		UserID: uid,
 		Limit:  30,
 	})
-	if err != nil || len(plans) == 0 {
+	if err != nil || len(rates) == 0 {
 		return 0
 	}
 
 	var streak int
-	for _, p := range plans {
-		tasks, err := s.queries.GetPlanTasksByDailyPlan(ctx, p.ID)
-		if err != nil || len(tasks) == 0 {
+	for _, r := range rates {
+		if r.TotalTasks == 0 {
 			break
 		}
-
-		logs, err := s.queries.GetExecutionLogsByDailyPlan(ctx, p.ID)
-		if err != nil {
-			break
-		}
-
-		var completed int
-		for _, l := range logs {
-			if l.Completed {
-				completed++
-			}
-		}
-
-		rate := float64(completed) / float64(len(tasks))
-		if rate < 0.7 {
+		if float64(r.CompletedTasks)/float64(r.TotalTasks) < 0.7 {
 			break
 		}
 		streak++
 	}
-
 	return streak
 }
 
@@ -521,6 +507,71 @@ func (s *Service) GetTodaysExecutionLogs(ctx context.Context, userID string) ([]
 	for i, l := range logs {
 		resp[i] = *executionLogToResponse(l)
 	}
+	return resp, nil
+}
+
+// GetAnalytics returns weekly trends, category performance, and difficulty trajectory.
+func (s *Service) GetAnalytics(ctx context.Context, userID string) (*AnalyticsResponse, error) {
+	uid, err := parseUUID(userID)
+	if err != nil {
+		return nil, err
+	}
+
+	trends, err := s.queries.GetWeeklyCompletionTrends(ctx, uid)
+	if err != nil {
+		return nil, fmt.Errorf("get weekly trends: %w", err)
+	}
+
+	categories, err := s.queries.GetCategoryPerformance(ctx, uid)
+	if err != nil {
+		return nil, fmt.Errorf("get category performance: %w", err)
+	}
+
+	trajectory, err := s.queries.GetDifficultyTrajectory(ctx, uid)
+	if err != nil {
+		return nil, fmt.Errorf("get difficulty trajectory: %w", err)
+	}
+
+	resp := &AnalyticsResponse{
+		WeeklyTrends:         make([]WeeklyTrend, len(trends)),
+		CategoryPerformance:  make([]CategoryPerformance, len(categories)),
+		DifficultyTrajectory: make([]DifficultyPoint, len(trajectory)),
+	}
+
+	for i, t := range trends {
+		var rate float64
+		if t.TotalTasks > 0 {
+			rate = float64(t.CompletedTasks) / float64(t.TotalTasks)
+		}
+		resp.WeeklyTrends[i] = WeeklyTrend{
+			WeekStart:      t.WeekStart.Time.Format("2006-01-02"),
+			PlanCount:      int(t.PlanCount),
+			TotalTasks:     int(t.TotalTasks),
+			CompletedTasks: int(t.CompletedTasks),
+			CompletionRate: rate,
+		}
+	}
+
+	for i, c := range categories {
+		var rate float64
+		if c.TotalTasks > 0 {
+			rate = float64(c.CompletedTasks) / float64(c.TotalTasks)
+		}
+		resp.CategoryPerformance[i] = CategoryPerformance{
+			Category:       c.Category,
+			TotalTasks:     int(c.TotalTasks),
+			CompletedTasks: int(c.CompletedTasks),
+			CompletionRate: rate,
+		}
+	}
+
+	for i, d := range trajectory {
+		resp.DifficultyTrajectory[i] = DifficultyPoint{
+			Date:       d.PlanDate.Time.Format("2006-01-02"),
+			Difficulty: numericToFloat(d.DifficultyScore),
+		}
+	}
+
 	return resp, nil
 }
 

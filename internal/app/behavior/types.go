@@ -109,6 +109,40 @@ type AdaptationLogResponse struct {
 	CreatedAt          string          `json:"created_at"`
 }
 
+// AnalyticsResponse contains weekly trends, category performance, and difficulty trajectory.
+// @Description Analytics response with trends and performance data
+type AnalyticsResponse struct {
+	WeeklyTrends         []WeeklyTrend        `json:"weekly_trends"`
+	CategoryPerformance  []CategoryPerformance `json:"category_performance"`
+	DifficultyTrajectory []DifficultyPoint     `json:"difficulty_trajectory"`
+}
+
+// WeeklyTrend represents completion data for a single week.
+// @Description Weekly completion trend
+type WeeklyTrend struct {
+	WeekStart      string  `json:"week_start"`
+	PlanCount      int     `json:"plan_count"`
+	TotalTasks     int     `json:"total_tasks"`
+	CompletedTasks int     `json:"completed_tasks"`
+	CompletionRate float64 `json:"completion_rate"`
+}
+
+// CategoryPerformance represents completion data for a single task category.
+// @Description Category performance breakdown
+type CategoryPerformance struct {
+	Category       string  `json:"category"`
+	TotalTasks     int     `json:"total_tasks"`
+	CompletedTasks int     `json:"completed_tasks"`
+	CompletionRate float64 `json:"completion_rate"`
+}
+
+// DifficultyPoint represents the difficulty score on a given date.
+// @Description Difficulty trajectory point
+type DifficultyPoint struct {
+	Date       string  `json:"date"`
+	Difficulty float64 `json:"difficulty"`
+}
+
 // --- AI Agent Request/Response Types ---
 
 var validCategories = []string{"health", "mindset", "discipline", "relationships", "productivity"}

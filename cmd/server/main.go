@@ -10,6 +10,7 @@ import (
 	"github.com/mounis-bhat/starter/internal/api"
 	appbehavior "github.com/mounis-bhat/starter/internal/app/behavior"
 	"github.com/mounis-bhat/starter/internal/config"
+	"github.com/mounis-bhat/starter/internal/email"
 	"github.com/mounis-bhat/starter/internal/service"
 	"github.com/mounis-bhat/starter/internal/storage"
 	"github.com/mounis-bhat/starter/internal/storage/blob"
@@ -61,8 +62,21 @@ func main() {
 		blobClient = nil
 	}
 
-	auditCleanup := service.NewAuditCleanupService(store.Queries)
+	// Initialize mailer (shared by router and scheduler)
+	var mailer email.Mailer
+	gmailMailer, err := email.NewGmailMailer(cfg.Email.ContactEmail, cfg.Email.GmailAppPassword)
+	if err != nil {
+		log.Printf("email disabled: %v", err)
+	} else {
+		mailer = gmailMailer
+	}
+
+	// Cron scheduler
 	cronScheduler := cron.New()
+	hasJobs := false
+
+	// Audit cleanup job
+	auditCleanup := service.NewAuditCleanupService(store.Queries)
 	if cfg.Audit.CleanupCron != "" && cfg.Audit.RetentionDays > 0 {
 		_, err = cronScheduler.AddFunc(cfg.Audit.CleanupCron, func() {
 			jobCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
@@ -80,15 +94,85 @@ func main() {
 		if err != nil {
 			log.Printf("invalid audit cleanup cron schedule: %s error=%v", cfg.Audit.CleanupCron, err)
 		} else {
-			cronScheduler.Start()
-			defer cronScheduler.Stop()
+			hasJobs = true
 		}
 	} else {
 		log.Printf("audit cleanup job disabled (cron=%q retention_days=%d)", cfg.Audit.CleanupCron, cfg.Audit.RetentionDays)
 	}
 
+	// Behavior scheduler jobs
+	behaviorScheduler := service.NewBehaviorSchedulerService(store.Queries, mailer, cfg.Email.AppBaseURL)
+
+	if cfg.Behavior.PlanExpiryCron != "" {
+		_, err = cronScheduler.AddFunc(cfg.Behavior.PlanExpiryCron, func() {
+			jobCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+			defer cancel()
+
+			expired, err := behaviorScheduler.ExpireOldPlans(jobCtx)
+			if err != nil {
+				log.Printf("plan expiry failed: %v", err)
+				return
+			}
+			if expired > 0 {
+				log.Printf("plan expiry complete: expired=%d", expired)
+			}
+		})
+		if err != nil {
+			log.Printf("invalid plan expiry cron schedule: %s error=%v", cfg.Behavior.PlanExpiryCron, err)
+		} else {
+			hasJobs = true
+		}
+	}
+
+	if cfg.Behavior.ReminderCron != "" {
+		_, err = cronScheduler.AddFunc(cfg.Behavior.ReminderCron, func() {
+			jobCtx, cancel := context.WithTimeout(ctx, 10*time.Minute)
+			defer cancel()
+
+			sent, err := behaviorScheduler.SendDailyReminders(jobCtx)
+			if err != nil {
+				log.Printf("daily reminders failed: %v", err)
+				return
+			}
+			if sent > 0 {
+				log.Printf("daily reminders sent: count=%d", sent)
+			}
+		})
+		if err != nil {
+			log.Printf("invalid reminder cron schedule: %s error=%v", cfg.Behavior.ReminderCron, err)
+		} else {
+			hasJobs = true
+		}
+	}
+
+	if cfg.Behavior.RelapseCron != "" {
+		_, err = cronScheduler.AddFunc(cfg.Behavior.RelapseCron, func() {
+			jobCtx, cancel := context.WithTimeout(ctx, 10*time.Minute)
+			defer cancel()
+
+			handled, err := behaviorScheduler.DetectAndHandleRelapses(jobCtx)
+			if err != nil {
+				log.Printf("relapse detection failed: %v", err)
+				return
+			}
+			if handled > 0 {
+				log.Printf("relapse detection complete: handled=%d", handled)
+			}
+		})
+		if err != nil {
+			log.Printf("invalid relapse cron schedule: %s error=%v", cfg.Behavior.RelapseCron, err)
+		} else {
+			hasJobs = true
+		}
+	}
+
+	if hasJobs {
+		cronScheduler.Start()
+		defer cronScheduler.Stop()
+	}
+
 	// Setup router
-	mux := api.NewRouter(cfg, store, behaviorService, blobClient)
+	mux := api.NewRouter(cfg, store, behaviorService, blobClient, mailer)
 	root := http.NewServeMux()
 	root.Handle("/", api.WithSecurityHeaders(cfg, mux))
 

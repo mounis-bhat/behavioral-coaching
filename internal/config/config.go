@@ -23,6 +23,7 @@ type Config struct {
 	Audit     AuditConfig
 	Email     EmailConfig
 	Storage   StorageConfig
+	Behavior  BehaviorConfig
 }
 
 type DatabaseConfig struct {
@@ -103,6 +104,12 @@ type StorageConfig struct {
 	PresignUploadTTL   time.Duration
 	PresignDownloadTTL time.Duration
 	AvatarMaxBytes     int64
+}
+
+type BehaviorConfig struct {
+	PlanExpiryCron string
+	ReminderCron   string
+	RelapseCron    string
 }
 
 func (v ValkeyConfig) Addr() string {
@@ -223,6 +230,11 @@ func Load() *Config {
 			AppBaseURL:       appBaseURL,
 			ContactEmail:     os.Getenv("CONTACT_EMAIL"),
 			GmailAppPassword: os.Getenv("GMAIL_APP_PASSWORD"),
+		},
+		Behavior: BehaviorConfig{
+			PlanExpiryCron: getEnvOrDefault("BEHAVIOR_PLAN_EXPIRY_CRON", "0 0 * * *"),
+			ReminderCron:   getEnvOrDefault("BEHAVIOR_REMINDER_CRON", "0 14 * * *"),
+			RelapseCron:    getEnvOrDefault("BEHAVIOR_RELAPSE_CRON", "0 22 * * *"),
 		},
 		Storage: StorageConfig{
 			Endpoint:           strings.TrimRight(os.Getenv("S3_ENDPOINT"), "/"),

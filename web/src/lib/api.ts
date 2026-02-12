@@ -24,6 +24,9 @@ export type AdherenceResponse = DeepRequired<
 export type AdaptationLogResponse = DeepRequired<
 	components['schemas']['behavior.AdaptationLogResponse']
 >;
+export type AnalyticsResponse = DeepRequired<
+	components['schemas']['behavior.AnalyticsResponse']
+>;
 
 // Input types use Record<string, never> for JSON fields in the generated schema,
 // so we define them manually to accept actual data.
@@ -173,6 +176,17 @@ export async function fetchAdherence(): Promise<ApiResponse<AdherenceResponse>> 
 		const res = await fetch(`${BASE_URL}/behavior/adherence`);
 		if (!res.ok) throw new Error(`HTTP ${res.status}`);
 		const data: AdherenceResponse = await res.json();
+		return { data, error: null };
+	} catch (e) {
+		return { data: null, error: e instanceof Error ? e.message : 'Unknown error' };
+	}
+}
+
+export async function fetchAnalytics(): Promise<ApiResponse<AnalyticsResponse>> {
+	try {
+		const res = await fetch(`${BASE_URL}/behavior/analytics`);
+		if (!res.ok) throw new Error(`HTTP ${res.status}`);
+		const data: AnalyticsResponse = await res.json();
 		return { data, error: null };
 	} catch (e) {
 		return { data: null, error: e instanceof Error ? e.message : 'Unknown error' };

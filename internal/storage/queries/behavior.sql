@@ -24,8 +24,8 @@ DELETE FROM behavior_profiles WHERE user_id = $1;
 -- Daily Plans
 
 -- name: CreateDailyPlan :one
-INSERT INTO daily_plans (user_id, plan_date, difficulty_score, status)
-VALUES ($1, $2, $3, $4)
+INSERT INTO daily_plans (user_id, plan_date, difficulty_score, status, prompt_version)
+VALUES ($1, $2, $3, $4, $5)
 RETURNING *;
 
 -- name: GetDailyPlanByUserAndDate :one
@@ -112,3 +112,92 @@ SELECT * FROM adaptation_logs
 WHERE user_id = $1
 ORDER BY created_at DESC
 LIMIT $2;
+
+-- Scheduled Jobs
+
+-- name: ExpireOldPlans :execrows
+UPDATE daily_plans SET status = 'expired'
+WHERE plan_date < CURRENT_DATE AND status NOT IN ('expired', 'completed');
+
+-- name: GetUsersNeedingReminder :many
+SELECT u.id, u.email, u.name FROM users u
+JOIN behavior_profiles bp ON u.id = bp.user_id
+JOIN daily_plans dp ON u.id = dp.user_id
+  AND dp.plan_date = CURRENT_DATE AND dp.status != 'expired'
+LEFT JOIN execution_logs el ON el.user_id = u.id
+  AND el.plan_task_id IN (SELECT pt.id FROM plan_tasks pt WHERE pt.daily_plan_id = dp.id)
+  AND el.completed = TRUE
+WHERE u.email_verified = TRUE
+  AND bp.onboarding_completed = TRUE
+  AND (bp.last_notified_at IS NULL OR bp.last_notified_at::date < CURRENT_DATE)
+GROUP BY u.id, u.email, u.name
+HAVING COUNT(el.id) = 0;
+
+-- name: GetInactiveUsers :many
+SELECT u.id, u.email, u.name FROM users u
+JOIN behavior_profiles bp ON u.id = bp.user_id
+WHERE bp.onboarding_completed = TRUE
+  AND u.email_verified = TRUE
+  AND (bp.last_notified_at IS NULL OR bp.last_notified_at::date < CURRENT_DATE)
+  AND NOT EXISTS (
+    SELECT 1 FROM daily_plans dp
+    WHERE dp.user_id = u.id AND dp.plan_date >= CURRENT_DATE - INTERVAL '2 days'
+  );
+
+-- name: GetRelapsingUsers :many
+SELECT u.id, u.email, u.name, ast.completion_rate, ast.streak_count,
+       bp.difficulty_level
+FROM users u
+JOIN behavior_profiles bp ON u.id = bp.user_id
+JOIN adherence_states ast ON u.id = ast.user_id
+WHERE bp.onboarding_completed = TRUE
+  AND ast.completion_rate < 0.3
+  AND ast.total_tasks > 0
+  AND (bp.last_notified_at IS NULL OR bp.last_notified_at::date < CURRENT_DATE);
+
+-- name: UpdateProfileNotifiedAt :exec
+UPDATE behavior_profiles SET last_notified_at = NOW() WHERE user_id = $1;
+
+-- Analytics Queries
+
+-- name: GetDailyCompletionRates :many
+-- Replaces N+1 streak computation (60+ queries → 1)
+SELECT dp.plan_date,
+       COUNT(pt.id)::int AS total_tasks,
+       COUNT(el.id) FILTER (WHERE el.completed = TRUE)::int AS completed_tasks
+FROM daily_plans dp
+JOIN plan_tasks pt ON pt.daily_plan_id = dp.id
+LEFT JOIN execution_logs el ON el.plan_task_id = pt.id AND el.completed = TRUE
+WHERE dp.user_id = $1 AND dp.plan_date <= CURRENT_DATE
+GROUP BY dp.plan_date
+ORDER BY dp.plan_date DESC
+LIMIT $2;
+
+-- name: GetWeeklyCompletionTrends :many
+SELECT date_trunc('week', dp.plan_date)::date AS week_start,
+       COUNT(DISTINCT dp.id)::int AS plan_count,
+       COUNT(pt.id)::int AS total_tasks,
+       COUNT(el.id) FILTER (WHERE el.completed = TRUE)::int AS completed_tasks
+FROM daily_plans dp
+JOIN plan_tasks pt ON pt.daily_plan_id = dp.id
+LEFT JOIN execution_logs el ON el.plan_task_id = pt.id AND el.completed = TRUE
+WHERE dp.user_id = $1 AND dp.plan_date >= CURRENT_DATE - INTERVAL '28 days'
+GROUP BY week_start
+ORDER BY week_start;
+
+-- name: GetCategoryPerformance :many
+SELECT pt.category,
+       COUNT(pt.id)::int AS total_tasks,
+       COUNT(el.id) FILTER (WHERE el.completed = TRUE)::int AS completed_tasks
+FROM plan_tasks pt
+JOIN daily_plans dp ON dp.id = pt.daily_plan_id
+LEFT JOIN execution_logs el ON el.plan_task_id = pt.id AND el.completed = TRUE
+WHERE dp.user_id = $1 AND dp.plan_date >= CURRENT_DATE - INTERVAL '30 days'
+GROUP BY pt.category
+ORDER BY pt.category;
+
+-- name: GetDifficultyTrajectory :many
+SELECT dp.plan_date, dp.difficulty_score
+FROM daily_plans dp
+WHERE dp.user_id = $1 AND dp.plan_date >= CURRENT_DATE - INTERVAL '30 days'
+ORDER BY dp.plan_date;

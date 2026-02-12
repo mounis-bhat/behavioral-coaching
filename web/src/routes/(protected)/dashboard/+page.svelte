@@ -26,6 +26,13 @@
 	let generating = $state(false);
 	let togglingTask = $state<string | null>(null);
 	let logoutLoading = $state(false);
+	let relapseNoticeDismissed = $state(false);
+
+	let showRelapseNotice = $derived(
+		!relapseNoticeDismissed &&
+			adaptations.length > 0 &&
+			adaptations[0].adaptation_reason.startsWith('Automatic relapse recovery')
+	);
 
 	onMount(async () => {
 		const profileResult = await fetchProfile();
@@ -144,6 +151,24 @@
 			<div class="mb-4 rounded bg-red-100 p-3 text-sm text-red-700">{error}</div>
 		{/if}
 
+		{#if showRelapseNotice}
+			<div class="mb-4 flex items-start justify-between rounded-lg border border-blue-200 bg-blue-50 p-4">
+				<p class="text-sm text-blue-800">
+					We've adjusted your plan to help you get back on track. Your difficulty has been lowered — focus on building momentum.
+				</p>
+				<button
+					type="button"
+					onclick={() => (relapseNoticeDismissed = true)}
+					class="ml-3 shrink-0 text-blue-400 hover:text-blue-600"
+					aria-label="Dismiss notice"
+				>
+					<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+						<path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+					</svg>
+				</button>
+			</div>
+		{/if}
+
 		{#if !plan}
 			<div class="rounded-lg border border-dashed border-gray-300 p-8 text-center">
 				<p class="mb-4 text-gray-600">No plan for today yet.</p>
@@ -245,7 +270,10 @@
 		{/if}
 
 		<div class="mt-8 flex items-center justify-between border-t pt-6">
-			<a href="/settings" class="text-sm underline">Settings</a>
+			<div class="flex gap-4">
+				<a href="/insights" class="text-sm underline">Insights</a>
+				<a href="/settings" class="text-sm underline">Settings</a>
+			</div>
 			<button
 				type="button"
 				onclick={handleLogout}

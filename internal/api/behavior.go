@@ -287,6 +287,31 @@ func (h *BehaviorHandler) HandleGetAdaptations(w http.ResponseWriter, r *http.Re
 	writeJSON(w, http.StatusOK, logs)
 }
 
+// HandleGetAnalytics returns analytics data for the authenticated user
+// @Summary      Get analytics
+// @Description  Returns weekly trends, category performance, and difficulty trajectory
+// @Tags         behavior
+// @Produce      json
+// @Success      200  {object}  behavior.AnalyticsResponse
+// @Failure      401  {object}  map[string]string
+// @Failure      500  {object}  map[string]string
+// @Router       /behavior/analytics [get]
+func (h *BehaviorHandler) HandleGetAnalytics(w http.ResponseWriter, r *http.Request) {
+	user, ok := userFromContext(r.Context())
+	if !ok {
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return
+	}
+
+	analytics, err := h.service.GetAnalytics(r.Context(), user.ID)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to get analytics"})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, analytics)
+}
+
 // HandleGetTodaysExecutionLogs returns today's execution logs for the authenticated user
 // @Summary      Get today's execution logs
 // @Description  Returns execution logs for today's active plan

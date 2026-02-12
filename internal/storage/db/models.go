@@ -54,6 +54,7 @@ type BehaviorProfile struct {
 	OnboardingCompleted bool               `json:"onboarding_completed"`
 	CreatedAt           pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt           pgtype.Timestamptz `json:"updated_at"`
+	LastNotifiedAt      pgtype.Timestamptz `json:"last_notified_at"`
 }
 
 type DailyPlan struct {
@@ -64,6 +65,7 @@ type DailyPlan struct {
 	Status          string             `json:"status"`
 	CreatedAt       pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
+	PromptVersion   string             `json:"prompt_version"`
 }
 
 type ExecutionLog struct {

@@ -995,6 +995,67 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/behavior/analytics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get analytics
+         * @description Returns weekly trends, category performance, and difficulty trajectory
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["behavior.AnalyticsResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/behavior/plan/generate": {
         parameters: {
             query?: never;
@@ -1734,12 +1795,30 @@ export interface components {
             total_tasks?: number;
             user_id?: string;
         };
+        /** @description Analytics response with trends and performance data */
+        "behavior.AnalyticsResponse": {
+            category_performance?: components["schemas"]["behavior.CategoryPerformance"][];
+            difficulty_trajectory?: components["schemas"]["behavior.DifficultyPoint"][];
+            weekly_trends?: components["schemas"]["behavior.WeeklyTrend"][];
+        };
+        /** @description Category performance breakdown */
+        "behavior.CategoryPerformance": {
+            category?: string;
+            completed_tasks?: number;
+            completion_rate?: number;
+            total_tasks?: number;
+        };
         /** @description Profile creation request */
         "behavior.CreateProfileInput": {
             constraints?: Record<string, never>;
             difficulty_level?: number;
             goals?: Record<string, never>;
             psychological_state?: Record<string, never>;
+        };
+        /** @description Difficulty trajectory point */
+        "behavior.DifficultyPoint": {
+            date?: string;
+            difficulty?: number;
         };
         /** @description Task execution log response */
         "behavior.ExecutionLogResponse": {
@@ -1796,6 +1875,14 @@ export interface components {
             goals?: Record<string, never>;
             onboarding_completed?: boolean;
             psychological_state?: Record<string, never>;
+        };
+        /** @description Weekly completion trend */
+        "behavior.WeeklyTrend": {
+            completed_tasks?: number;
+            completion_rate?: number;
+            plan_count?: number;
+            total_tasks?: number;
+            week_start?: string;
         };
     };
     responses: never;

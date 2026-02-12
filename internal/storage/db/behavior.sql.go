@@ -55,7 +55,7 @@ const createBehaviorProfile = `-- name: CreateBehaviorProfile :one
 
 INSERT INTO behavior_profiles (user_id, goals, constraints, psychological_state, difficulty_level, onboarding_completed)
 VALUES ($1, $2, $3, $4, $5, $6)
-RETURNING id, user_id, goals, constraints, psychological_state, difficulty_level, onboarding_completed, created_at, updated_at
+RETURNING id, user_id, goals, constraints, psychological_state, difficulty_level, onboarding_completed, created_at, updated_at, last_notified_at
 `
 
 type CreateBehaviorProfileParams struct {
@@ -88,15 +88,16 @@ func (q *Queries) CreateBehaviorProfile(ctx context.Context, arg CreateBehaviorP
 		&i.OnboardingCompleted,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.LastNotifiedAt,
 	)
 	return i, err
 }
 
 const createDailyPlan = `-- name: CreateDailyPlan :one
 
-INSERT INTO daily_plans (user_id, plan_date, difficulty_score, status)
-VALUES ($1, $2, $3, $4)
-RETURNING id, user_id, plan_date, difficulty_score, status, created_at, updated_at
+INSERT INTO daily_plans (user_id, plan_date, difficulty_score, status, prompt_version)
+VALUES ($1, $2, $3, $4, $5)
+RETURNING id, user_id, plan_date, difficulty_score, status, created_at, updated_at, prompt_version
 `
 
 type CreateDailyPlanParams struct {
@@ -104,6 +105,7 @@ type CreateDailyPlanParams struct {
 	PlanDate        pgtype.Date    `json:"plan_date"`
 	DifficultyScore pgtype.Numeric `json:"difficulty_score"`
 	Status          string         `json:"status"`
+	PromptVersion   string         `json:"prompt_version"`
 }
 
 // Daily Plans
@@ -113,6 +115,7 @@ func (q *Queries) CreateDailyPlan(ctx context.Context, arg CreateDailyPlanParams
 		arg.PlanDate,
 		arg.DifficultyScore,
 		arg.Status,
+		arg.PromptVersion,
 	)
 	var i DailyPlan
 	err := row.Scan(
@@ -123,6 +126,7 @@ func (q *Queries) CreateDailyPlan(ctx context.Context, arg CreateDailyPlanParams
 		&i.Status,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.PromptVersion,
 	)
 	return i, err
 }
@@ -176,8 +180,23 @@ func (q *Queries) DeleteBehaviorProfile(ctx context.Context, userID pgtype.UUID)
 	return err
 }
 
+const expireOldPlans = `-- name: ExpireOldPlans :execrows
+
+UPDATE daily_plans SET status = 'expired'
+WHERE plan_date < CURRENT_DATE AND status NOT IN ('expired', 'completed')
+`
+
+// Scheduled Jobs
+func (q *Queries) ExpireOldPlans(ctx context.Context) (int64, error) {
+	result, err := q.db.Exec(ctx, expireOldPlans)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const getActiveDailyPlan = `-- name: GetActiveDailyPlan :one
-SELECT id, user_id, plan_date, difficulty_score, status, created_at, updated_at FROM daily_plans
+SELECT id, user_id, plan_date, difficulty_score, status, created_at, updated_at, prompt_version FROM daily_plans
 WHERE user_id = $1 AND plan_date = CURRENT_DATE AND status != 'expired'
 `
 
@@ -192,6 +211,7 @@ func (q *Queries) GetActiveDailyPlan(ctx context.Context, userID pgtype.UUID) (D
 		&i.Status,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.PromptVersion,
 	)
 	return i, err
 }
@@ -260,7 +280,7 @@ func (q *Queries) GetAdherenceStateByUserID(ctx context.Context, userID pgtype.U
 }
 
 const getBehaviorProfileByUserID = `-- name: GetBehaviorProfileByUserID :one
-SELECT id, user_id, goals, constraints, psychological_state, difficulty_level, onboarding_completed, created_at, updated_at FROM behavior_profiles WHERE user_id = $1
+SELECT id, user_id, goals, constraints, psychological_state, difficulty_level, onboarding_completed, created_at, updated_at, last_notified_at FROM behavior_profiles WHERE user_id = $1
 `
 
 func (q *Queries) GetBehaviorProfileByUserID(ctx context.Context, userID pgtype.UUID) (BehaviorProfile, error) {
@@ -276,12 +296,98 @@ func (q *Queries) GetBehaviorProfileByUserID(ctx context.Context, userID pgtype.
 		&i.OnboardingCompleted,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.LastNotifiedAt,
 	)
 	return i, err
 }
 
+const getCategoryPerformance = `-- name: GetCategoryPerformance :many
+SELECT pt.category,
+       COUNT(pt.id)::int AS total_tasks,
+       COUNT(el.id) FILTER (WHERE el.completed = TRUE)::int AS completed_tasks
+FROM plan_tasks pt
+JOIN daily_plans dp ON dp.id = pt.daily_plan_id
+LEFT JOIN execution_logs el ON el.plan_task_id = pt.id AND el.completed = TRUE
+WHERE dp.user_id = $1 AND dp.plan_date >= CURRENT_DATE - INTERVAL '30 days'
+GROUP BY pt.category
+ORDER BY pt.category
+`
+
+type GetCategoryPerformanceRow struct {
+	Category       string `json:"category"`
+	TotalTasks     int32  `json:"total_tasks"`
+	CompletedTasks int32  `json:"completed_tasks"`
+}
+
+func (q *Queries) GetCategoryPerformance(ctx context.Context, userID pgtype.UUID) ([]GetCategoryPerformanceRow, error) {
+	rows, err := q.db.Query(ctx, getCategoryPerformance, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetCategoryPerformanceRow{}
+	for rows.Next() {
+		var i GetCategoryPerformanceRow
+		if err := rows.Scan(&i.Category, &i.TotalTasks, &i.CompletedTasks); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getDailyCompletionRates = `-- name: GetDailyCompletionRates :many
+
+SELECT dp.plan_date,
+       COUNT(pt.id)::int AS total_tasks,
+       COUNT(el.id) FILTER (WHERE el.completed = TRUE)::int AS completed_tasks
+FROM daily_plans dp
+JOIN plan_tasks pt ON pt.daily_plan_id = dp.id
+LEFT JOIN execution_logs el ON el.plan_task_id = pt.id AND el.completed = TRUE
+WHERE dp.user_id = $1 AND dp.plan_date <= CURRENT_DATE
+GROUP BY dp.plan_date
+ORDER BY dp.plan_date DESC
+LIMIT $2
+`
+
+type GetDailyCompletionRatesParams struct {
+	UserID pgtype.UUID `json:"user_id"`
+	Limit  int32       `json:"limit"`
+}
+
+type GetDailyCompletionRatesRow struct {
+	PlanDate       pgtype.Date `json:"plan_date"`
+	TotalTasks     int32       `json:"total_tasks"`
+	CompletedTasks int32       `json:"completed_tasks"`
+}
+
+// Analytics Queries
+// Replaces N+1 streak computation (60+ queries → 1)
+func (q *Queries) GetDailyCompletionRates(ctx context.Context, arg GetDailyCompletionRatesParams) ([]GetDailyCompletionRatesRow, error) {
+	rows, err := q.db.Query(ctx, getDailyCompletionRates, arg.UserID, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetDailyCompletionRatesRow{}
+	for rows.Next() {
+		var i GetDailyCompletionRatesRow
+		if err := rows.Scan(&i.PlanDate, &i.TotalTasks, &i.CompletedTasks); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getDailyPlanByUserAndDate = `-- name: GetDailyPlanByUserAndDate :one
-SELECT id, user_id, plan_date, difficulty_score, status, created_at, updated_at FROM daily_plans WHERE user_id = $1 AND plan_date = $2
+SELECT id, user_id, plan_date, difficulty_score, status, created_at, updated_at, prompt_version FROM daily_plans WHERE user_id = $1 AND plan_date = $2
 `
 
 type GetDailyPlanByUserAndDateParams struct {
@@ -300,8 +406,41 @@ func (q *Queries) GetDailyPlanByUserAndDate(ctx context.Context, arg GetDailyPla
 		&i.Status,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.PromptVersion,
 	)
 	return i, err
+}
+
+const getDifficultyTrajectory = `-- name: GetDifficultyTrajectory :many
+SELECT dp.plan_date, dp.difficulty_score
+FROM daily_plans dp
+WHERE dp.user_id = $1 AND dp.plan_date >= CURRENT_DATE - INTERVAL '30 days'
+ORDER BY dp.plan_date
+`
+
+type GetDifficultyTrajectoryRow struct {
+	PlanDate        pgtype.Date    `json:"plan_date"`
+	DifficultyScore pgtype.Numeric `json:"difficulty_score"`
+}
+
+func (q *Queries) GetDifficultyTrajectory(ctx context.Context, userID pgtype.UUID) ([]GetDifficultyTrajectoryRow, error) {
+	rows, err := q.db.Query(ctx, getDifficultyTrajectory, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetDifficultyTrajectoryRow{}
+	for rows.Next() {
+		var i GetDifficultyTrajectoryRow
+		if err := rows.Scan(&i.PlanDate, &i.DifficultyScore); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getExecutionLogsByDailyPlan = `-- name: GetExecutionLogsByDailyPlan :many
@@ -379,6 +518,44 @@ func (q *Queries) GetExecutionLogsByUser(ctx context.Context, arg GetExecutionLo
 	return items, nil
 }
 
+const getInactiveUsers = `-- name: GetInactiveUsers :many
+SELECT u.id, u.email, u.name FROM users u
+JOIN behavior_profiles bp ON u.id = bp.user_id
+WHERE bp.onboarding_completed = TRUE
+  AND u.email_verified = TRUE
+  AND (bp.last_notified_at IS NULL OR bp.last_notified_at::date < CURRENT_DATE)
+  AND NOT EXISTS (
+    SELECT 1 FROM daily_plans dp
+    WHERE dp.user_id = u.id AND dp.plan_date >= CURRENT_DATE - INTERVAL '2 days'
+  )
+`
+
+type GetInactiveUsersRow struct {
+	ID    pgtype.UUID `json:"id"`
+	Email string      `json:"email"`
+	Name  string      `json:"name"`
+}
+
+func (q *Queries) GetInactiveUsers(ctx context.Context) ([]GetInactiveUsersRow, error) {
+	rows, err := q.db.Query(ctx, getInactiveUsers)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetInactiveUsersRow{}
+	for rows.Next() {
+		var i GetInactiveUsersRow
+		if err := rows.Scan(&i.ID, &i.Email, &i.Name); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getPlanTaskByID = `-- name: GetPlanTaskByID :one
 SELECT id, daily_plan_id, title, description, category, difficulty, position, created_at FROM plan_tasks WHERE id = $1
 `
@@ -435,7 +612,7 @@ func (q *Queries) GetPlanTasksByDailyPlan(ctx context.Context, dailyPlanID pgtyp
 }
 
 const getRecentDailyPlans = `-- name: GetRecentDailyPlans :many
-SELECT id, user_id, plan_date, difficulty_score, status, created_at, updated_at FROM daily_plans
+SELECT id, user_id, plan_date, difficulty_score, status, created_at, updated_at, prompt_version FROM daily_plans
 WHERE user_id = $1
 ORDER BY plan_date DESC
 LIMIT $2
@@ -463,6 +640,141 @@ func (q *Queries) GetRecentDailyPlans(ctx context.Context, arg GetRecentDailyPla
 			&i.Status,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.PromptVersion,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getRelapsingUsers = `-- name: GetRelapsingUsers :many
+SELECT u.id, u.email, u.name, ast.completion_rate, ast.streak_count,
+       bp.difficulty_level
+FROM users u
+JOIN behavior_profiles bp ON u.id = bp.user_id
+JOIN adherence_states ast ON u.id = ast.user_id
+WHERE bp.onboarding_completed = TRUE
+  AND ast.completion_rate < 0.3
+  AND ast.total_tasks > 0
+  AND (bp.last_notified_at IS NULL OR bp.last_notified_at::date < CURRENT_DATE)
+`
+
+type GetRelapsingUsersRow struct {
+	ID              pgtype.UUID    `json:"id"`
+	Email           string         `json:"email"`
+	Name            string         `json:"name"`
+	CompletionRate  pgtype.Numeric `json:"completion_rate"`
+	StreakCount     int32          `json:"streak_count"`
+	DifficultyLevel pgtype.Numeric `json:"difficulty_level"`
+}
+
+func (q *Queries) GetRelapsingUsers(ctx context.Context) ([]GetRelapsingUsersRow, error) {
+	rows, err := q.db.Query(ctx, getRelapsingUsers)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetRelapsingUsersRow{}
+	for rows.Next() {
+		var i GetRelapsingUsersRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Email,
+			&i.Name,
+			&i.CompletionRate,
+			&i.StreakCount,
+			&i.DifficultyLevel,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getUsersNeedingReminder = `-- name: GetUsersNeedingReminder :many
+SELECT u.id, u.email, u.name FROM users u
+JOIN behavior_profiles bp ON u.id = bp.user_id
+JOIN daily_plans dp ON u.id = dp.user_id
+  AND dp.plan_date = CURRENT_DATE AND dp.status != 'expired'
+LEFT JOIN execution_logs el ON el.user_id = u.id
+  AND el.plan_task_id IN (SELECT pt.id FROM plan_tasks pt WHERE pt.daily_plan_id = dp.id)
+  AND el.completed = TRUE
+WHERE u.email_verified = TRUE
+  AND bp.onboarding_completed = TRUE
+  AND (bp.last_notified_at IS NULL OR bp.last_notified_at::date < CURRENT_DATE)
+GROUP BY u.id, u.email, u.name
+HAVING COUNT(el.id) = 0
+`
+
+type GetUsersNeedingReminderRow struct {
+	ID    pgtype.UUID `json:"id"`
+	Email string      `json:"email"`
+	Name  string      `json:"name"`
+}
+
+func (q *Queries) GetUsersNeedingReminder(ctx context.Context) ([]GetUsersNeedingReminderRow, error) {
+	rows, err := q.db.Query(ctx, getUsersNeedingReminder)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetUsersNeedingReminderRow{}
+	for rows.Next() {
+		var i GetUsersNeedingReminderRow
+		if err := rows.Scan(&i.ID, &i.Email, &i.Name); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getWeeklyCompletionTrends = `-- name: GetWeeklyCompletionTrends :many
+SELECT date_trunc('week', dp.plan_date)::date AS week_start,
+       COUNT(DISTINCT dp.id)::int AS plan_count,
+       COUNT(pt.id)::int AS total_tasks,
+       COUNT(el.id) FILTER (WHERE el.completed = TRUE)::int AS completed_tasks
+FROM daily_plans dp
+JOIN plan_tasks pt ON pt.daily_plan_id = dp.id
+LEFT JOIN execution_logs el ON el.plan_task_id = pt.id AND el.completed = TRUE
+WHERE dp.user_id = $1 AND dp.plan_date >= CURRENT_DATE - INTERVAL '28 days'
+GROUP BY week_start
+ORDER BY week_start
+`
+
+type GetWeeklyCompletionTrendsRow struct {
+	WeekStart      pgtype.Date `json:"week_start"`
+	PlanCount      int32       `json:"plan_count"`
+	TotalTasks     int32       `json:"total_tasks"`
+	CompletedTasks int32       `json:"completed_tasks"`
+}
+
+func (q *Queries) GetWeeklyCompletionTrends(ctx context.Context, userID pgtype.UUID) ([]GetWeeklyCompletionTrendsRow, error) {
+	rows, err := q.db.Query(ctx, getWeeklyCompletionTrends, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetWeeklyCompletionTrendsRow{}
+	for rows.Next() {
+		var i GetWeeklyCompletionTrendsRow
+		if err := rows.Scan(
+			&i.WeekStart,
+			&i.PlanCount,
+			&i.TotalTasks,
+			&i.CompletedTasks,
 		); err != nil {
 			return nil, err
 		}
@@ -482,7 +794,7 @@ SET goals = COALESCE($1, goals),
     difficulty_level = COALESCE($4, difficulty_level),
     onboarding_completed = COALESCE($5, onboarding_completed)
 WHERE user_id = $6
-RETURNING id, user_id, goals, constraints, psychological_state, difficulty_level, onboarding_completed, created_at, updated_at
+RETURNING id, user_id, goals, constraints, psychological_state, difficulty_level, onboarding_completed, created_at, updated_at, last_notified_at
 `
 
 type UpdateBehaviorProfileParams struct {
@@ -514,13 +826,14 @@ func (q *Queries) UpdateBehaviorProfile(ctx context.Context, arg UpdateBehaviorP
 		&i.OnboardingCompleted,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.LastNotifiedAt,
 	)
 	return i, err
 }
 
 const updateDailyPlanStatus = `-- name: UpdateDailyPlanStatus :one
 UPDATE daily_plans SET status = $2 WHERE id = $1
-RETURNING id, user_id, plan_date, difficulty_score, status, created_at, updated_at
+RETURNING id, user_id, plan_date, difficulty_score, status, created_at, updated_at, prompt_version
 `
 
 type UpdateDailyPlanStatusParams struct {
@@ -539,8 +852,18 @@ func (q *Queries) UpdateDailyPlanStatus(ctx context.Context, arg UpdateDailyPlan
 		&i.Status,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.PromptVersion,
 	)
 	return i, err
+}
+
+const updateProfileNotifiedAt = `-- name: UpdateProfileNotifiedAt :exec
+UPDATE behavior_profiles SET last_notified_at = NOW() WHERE user_id = $1
+`
+
+func (q *Queries) UpdateProfileNotifiedAt(ctx context.Context, userID pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, updateProfileNotifiedAt, userID)
+	return err
 }
 
 const upsertAdherenceState = `-- name: UpsertAdherenceState :one
