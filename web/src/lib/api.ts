@@ -1,77 +1,51 @@
 import type { components } from './api-types';
 
-// Export useful types
+// The generated schema marks all response fields as optional, but the API
+// always returns them. DeepRequired makes the full tree non-optional.
+type DeepRequired<T> = {
+	[K in keyof T]-?: NonNullable<T[K]> extends (infer U)[]
+		? DeepRequired<U>[]
+		: NonNullable<T[K]> extends object
+			? DeepRequired<NonNullable<T[K]>>
+			: NonNullable<T[K]>;
+};
+
+// Types derived from auto-generated OpenAPI schema
 export type HealthResponse = components['schemas']['api.HealthResponse'];
+export type ProfileResponse = DeepRequired<components['schemas']['behavior.ProfileResponse']>;
+export type PlanResponse = DeepRequired<components['schemas']['behavior.PlanResponse']>;
+export type TaskResponse = DeepRequired<components['schemas']['behavior.TaskResponse']>;
+export type ExecutionLogResponse = DeepRequired<
+	components['schemas']['behavior.ExecutionLogResponse']
+>;
+export type AdherenceResponse = DeepRequired<
+	components['schemas']['behavior.AdherenceResponse']
+>;
+export type AdaptationLogResponse = DeepRequired<
+	components['schemas']['behavior.AdaptationLogResponse']
+>;
+
+// Input types use Record<string, never> for JSON fields in the generated schema,
+// so we define them manually to accept actual data.
+type CreateProfileInput = {
+	goals?: Record<string, unknown>;
+	constraints?: Record<string, unknown>;
+	psychological_state?: Record<string, unknown>;
+	difficulty_level?: number;
+};
+type UpdateProfileInput = {
+	goals?: Record<string, unknown>;
+	constraints?: Record<string, unknown>;
+	psychological_state?: Record<string, unknown>;
+	difficulty_level?: number;
+	onboarding_completed?: boolean;
+};
+type LogExecutionInput = components['schemas']['behavior.LogExecutionInput'];
 
 // Type-safe API client
 const BASE_URL = '/api';
 
 type ApiResponse<T> = { data: T; error: null } | { data: null; error: string };
-
-export type ProfileResponse = {
-	id: string;
-	user_id: string;
-	goals: unknown;
-	constraints: unknown;
-	psychological_state: unknown;
-	difficulty_level: number;
-	onboarding_completed: boolean;
-	created_at: string;
-	updated_at: string;
-};
-
-export type PlanResponse = {
-	id: string;
-	user_id: string;
-	plan_date: string;
-	difficulty_score: number;
-	status: string;
-	tasks: TaskResponse[];
-	created_at: string;
-	updated_at: string;
-};
-
-export type TaskResponse = {
-	id: string;
-	title: string;
-	description: string;
-	category: string;
-	difficulty: number;
-	position: number;
-	created_at: string;
-};
-
-export type ExecutionLogResponse = {
-	id: string;
-	plan_task_id: string;
-	user_id: string;
-	completed: boolean;
-	completed_at?: string;
-	notes: string;
-	created_at: string;
-};
-
-export type AdherenceResponse = {
-	id: string;
-	user_id: string;
-	completion_rate: number;
-	streak_count: number;
-	total_tasks: number;
-	completed_tasks: number;
-	difficulty_mismatch: boolean;
-	last_computed_at: string;
-};
-
-export type AdaptationLogResponse = {
-	id: string;
-	user_id: string;
-	adaptation_reason: string;
-	difficulty_change: number;
-	previous_difficulty: number;
-	new_difficulty: number;
-	trigger_metrics: unknown;
-	created_at: string;
-};
 
 export async function fetchHealth(): Promise<ApiResponse<HealthResponse>> {
 	try {
@@ -96,12 +70,9 @@ export async function fetchProfile(): Promise<ApiResponse<ProfileResponse>> {
 	}
 }
 
-export async function createProfile(input: {
-	goals?: unknown;
-	constraints?: unknown;
-	psychological_state?: unknown;
-	difficulty_level?: number;
-}): Promise<ApiResponse<ProfileResponse>> {
+export async function createProfile(
+	input: CreateProfileInput
+): Promise<ApiResponse<ProfileResponse>> {
 	try {
 		const res = await fetch(`${BASE_URL}/behavior/profile`, {
 			method: 'POST',
@@ -119,13 +90,9 @@ export async function createProfile(input: {
 	}
 }
 
-export async function updateProfile(input: {
-	goals?: unknown;
-	constraints?: unknown;
-	psychological_state?: unknown;
-	difficulty_level?: number;
-	onboarding_completed?: boolean;
-}): Promise<ApiResponse<ProfileResponse>> {
+export async function updateProfile(
+	input: UpdateProfileInput
+): Promise<ApiResponse<ProfileResponse>> {
 	try {
 		const res = await fetch(`${BASE_URL}/behavior/profile`, {
 			method: 'PUT',
@@ -182,13 +149,13 @@ export async function fetchTodaysLogs(): Promise<ApiResponse<ExecutionLogRespons
 
 export async function logExecution(
 	taskId: string,
-	input: { completed: boolean; notes?: string }
+	input: LogExecutionInput
 ): Promise<ApiResponse<ExecutionLogResponse>> {
 	try {
 		const res = await fetch(`${BASE_URL}/behavior/tasks/${taskId}/log`, {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ completed: input.completed, notes: input.notes ?? '' })
+			body: JSON.stringify(input)
 		});
 		if (!res.ok) {
 			const payload = await res.json();
