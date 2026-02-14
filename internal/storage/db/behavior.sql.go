@@ -53,9 +53,9 @@ func (q *Queries) CreateAdaptationLog(ctx context.Context, arg CreateAdaptationL
 
 const createBehaviorProfile = `-- name: CreateBehaviorProfile :one
 
-INSERT INTO behavior_profiles (user_id, goals, constraints, psychological_state, difficulty_level, onboarding_completed)
-VALUES ($1, $2, $3, $4, $5, $6)
-RETURNING id, user_id, goals, constraints, psychological_state, difficulty_level, onboarding_completed, created_at, updated_at, last_notified_at
+INSERT INTO behavior_profiles (user_id, goals, constraints, psychological_state, difficulty_level, onboarding_completed, delivery_mode, emotional_state, ai_profile_summary)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+RETURNING id, user_id, goals, constraints, psychological_state, difficulty_level, onboarding_completed, created_at, updated_at, last_notified_at, delivery_mode, emotional_state, ai_profile_summary
 `
 
 type CreateBehaviorProfileParams struct {
@@ -65,6 +65,9 @@ type CreateBehaviorProfileParams struct {
 	PsychologicalState  []byte         `json:"psychological_state"`
 	DifficultyLevel     pgtype.Numeric `json:"difficulty_level"`
 	OnboardingCompleted bool           `json:"onboarding_completed"`
+	DeliveryMode        string         `json:"delivery_mode"`
+	EmotionalState      string         `json:"emotional_state"`
+	AiProfileSummary    []byte         `json:"ai_profile_summary"`
 }
 
 // Behavior Profiles
@@ -76,6 +79,9 @@ func (q *Queries) CreateBehaviorProfile(ctx context.Context, arg CreateBehaviorP
 		arg.PsychologicalState,
 		arg.DifficultyLevel,
 		arg.OnboardingCompleted,
+		arg.DeliveryMode,
+		arg.EmotionalState,
+		arg.AiProfileSummary,
 	)
 	var i BehaviorProfile
 	err := row.Scan(
@@ -89,6 +95,9 @@ func (q *Queries) CreateBehaviorProfile(ctx context.Context, arg CreateBehaviorP
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.LastNotifiedAt,
+		&i.DeliveryMode,
+		&i.EmotionalState,
+		&i.AiProfileSummary,
 	)
 	return i, err
 }
@@ -133,18 +142,21 @@ func (q *Queries) CreateDailyPlan(ctx context.Context, arg CreateDailyPlanParams
 
 const createPlanTask = `-- name: CreatePlanTask :one
 
-INSERT INTO plan_tasks (daily_plan_id, title, description, category, difficulty, position)
-VALUES ($1, $2, $3, $4, $5, $6)
-RETURNING id, daily_plan_id, title, description, category, difficulty, position, created_at
+INSERT INTO plan_tasks (daily_plan_id, title, description, category, difficulty, position, task_type, suggested_time, anchor_label)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+RETURNING id, daily_plan_id, title, description, category, difficulty, position, created_at, task_type, suggested_time, anchor_label
 `
 
 type CreatePlanTaskParams struct {
-	DailyPlanID pgtype.UUID    `json:"daily_plan_id"`
-	Title       string         `json:"title"`
-	Description string         `json:"description"`
-	Category    string         `json:"category"`
-	Difficulty  pgtype.Numeric `json:"difficulty"`
-	Position    int32          `json:"position"`
+	DailyPlanID   pgtype.UUID    `json:"daily_plan_id"`
+	Title         string         `json:"title"`
+	Description   string         `json:"description"`
+	Category      string         `json:"category"`
+	Difficulty    pgtype.Numeric `json:"difficulty"`
+	Position      int32          `json:"position"`
+	TaskType      string         `json:"task_type"`
+	SuggestedTime string         `json:"suggested_time"`
+	AnchorLabel   string         `json:"anchor_label"`
 }
 
 // Plan Tasks
@@ -156,6 +168,9 @@ func (q *Queries) CreatePlanTask(ctx context.Context, arg CreatePlanTaskParams) 
 		arg.Category,
 		arg.Difficulty,
 		arg.Position,
+		arg.TaskType,
+		arg.SuggestedTime,
+		arg.AnchorLabel,
 	)
 	var i PlanTask
 	err := row.Scan(
@@ -167,6 +182,9 @@ func (q *Queries) CreatePlanTask(ctx context.Context, arg CreatePlanTaskParams) 
 		&i.Difficulty,
 		&i.Position,
 		&i.CreatedAt,
+		&i.TaskType,
+		&i.SuggestedTime,
+		&i.AnchorLabel,
 	)
 	return i, err
 }
@@ -280,7 +298,7 @@ func (q *Queries) GetAdherenceStateByUserID(ctx context.Context, userID pgtype.U
 }
 
 const getBehaviorProfileByUserID = `-- name: GetBehaviorProfileByUserID :one
-SELECT id, user_id, goals, constraints, psychological_state, difficulty_level, onboarding_completed, created_at, updated_at, last_notified_at FROM behavior_profiles WHERE user_id = $1
+SELECT id, user_id, goals, constraints, psychological_state, difficulty_level, onboarding_completed, created_at, updated_at, last_notified_at, delivery_mode, emotional_state, ai_profile_summary FROM behavior_profiles WHERE user_id = $1
 `
 
 func (q *Queries) GetBehaviorProfileByUserID(ctx context.Context, userID pgtype.UUID) (BehaviorProfile, error) {
@@ -297,6 +315,9 @@ func (q *Queries) GetBehaviorProfileByUserID(ctx context.Context, userID pgtype.
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.LastNotifiedAt,
+		&i.DeliveryMode,
+		&i.EmotionalState,
+		&i.AiProfileSummary,
 	)
 	return i, err
 }
@@ -557,7 +578,7 @@ func (q *Queries) GetInactiveUsers(ctx context.Context) ([]GetInactiveUsersRow, 
 }
 
 const getPlanTaskByID = `-- name: GetPlanTaskByID :one
-SELECT id, daily_plan_id, title, description, category, difficulty, position, created_at FROM plan_tasks WHERE id = $1
+SELECT id, daily_plan_id, title, description, category, difficulty, position, created_at, task_type, suggested_time, anchor_label FROM plan_tasks WHERE id = $1
 `
 
 func (q *Queries) GetPlanTaskByID(ctx context.Context, id pgtype.UUID) (PlanTask, error) {
@@ -572,12 +593,15 @@ func (q *Queries) GetPlanTaskByID(ctx context.Context, id pgtype.UUID) (PlanTask
 		&i.Difficulty,
 		&i.Position,
 		&i.CreatedAt,
+		&i.TaskType,
+		&i.SuggestedTime,
+		&i.AnchorLabel,
 	)
 	return i, err
 }
 
 const getPlanTasksByDailyPlan = `-- name: GetPlanTasksByDailyPlan :many
-SELECT id, daily_plan_id, title, description, category, difficulty, position, created_at FROM plan_tasks
+SELECT id, daily_plan_id, title, description, category, difficulty, position, created_at, task_type, suggested_time, anchor_label FROM plan_tasks
 WHERE daily_plan_id = $1
 ORDER BY position ASC
 `
@@ -600,6 +624,9 @@ func (q *Queries) GetPlanTasksByDailyPlan(ctx context.Context, dailyPlanID pgtyp
 			&i.Difficulty,
 			&i.Position,
 			&i.CreatedAt,
+			&i.TaskType,
+			&i.SuggestedTime,
+			&i.AnchorLabel,
 		); err != nil {
 			return nil, err
 		}
@@ -792,9 +819,12 @@ SET goals = COALESCE($1, goals),
     constraints = COALESCE($2, constraints),
     psychological_state = COALESCE($3, psychological_state),
     difficulty_level = COALESCE($4, difficulty_level),
-    onboarding_completed = COALESCE($5, onboarding_completed)
-WHERE user_id = $6
-RETURNING id, user_id, goals, constraints, psychological_state, difficulty_level, onboarding_completed, created_at, updated_at, last_notified_at
+    onboarding_completed = COALESCE($5, onboarding_completed),
+    delivery_mode = COALESCE($6, delivery_mode),
+    emotional_state = COALESCE($7, emotional_state),
+    ai_profile_summary = COALESCE($8, ai_profile_summary)
+WHERE user_id = $9
+RETURNING id, user_id, goals, constraints, psychological_state, difficulty_level, onboarding_completed, created_at, updated_at, last_notified_at, delivery_mode, emotional_state, ai_profile_summary
 `
 
 type UpdateBehaviorProfileParams struct {
@@ -803,6 +833,9 @@ type UpdateBehaviorProfileParams struct {
 	PsychologicalState  []byte         `json:"psychological_state"`
 	DifficultyLevel     pgtype.Numeric `json:"difficulty_level"`
 	OnboardingCompleted pgtype.Bool    `json:"onboarding_completed"`
+	DeliveryMode        pgtype.Text    `json:"delivery_mode"`
+	EmotionalState      pgtype.Text    `json:"emotional_state"`
+	AiProfileSummary    []byte         `json:"ai_profile_summary"`
 	UserID              pgtype.UUID    `json:"user_id"`
 }
 
@@ -813,6 +846,9 @@ func (q *Queries) UpdateBehaviorProfile(ctx context.Context, arg UpdateBehaviorP
 		arg.PsychologicalState,
 		arg.DifficultyLevel,
 		arg.OnboardingCompleted,
+		arg.DeliveryMode,
+		arg.EmotionalState,
+		arg.AiProfileSummary,
 		arg.UserID,
 	)
 	var i BehaviorProfile
@@ -827,6 +863,9 @@ func (q *Queries) UpdateBehaviorProfile(ctx context.Context, arg UpdateBehaviorP
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.LastNotifiedAt,
+		&i.DeliveryMode,
+		&i.EmotionalState,
+		&i.AiProfileSummary,
 	)
 	return i, err
 }

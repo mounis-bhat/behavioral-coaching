@@ -45,7 +45,8 @@ func main() {
 
 	planningAgent := behavior.NewPlanningAgent(g)
 	adaptationAdvisor := behavior.NewAdaptationAdvisor(g)
-	behaviorService := appbehavior.NewService(store.Queries, planningAgent, adaptationAdvisor)
+	profilingAgent := behavior.NewProfilingAgent(g)
+	behaviorService := appbehavior.NewService(store.Queries, planningAgent, adaptationAdvisor, profilingAgent)
 
 	blobClient, err := blob.New(ctx, blob.Config{
 		Endpoint:           cfg.Storage.Endpoint,

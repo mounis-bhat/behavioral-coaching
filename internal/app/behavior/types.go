@@ -13,6 +13,9 @@ type CreateProfileInput struct {
 	Constraints        json.RawMessage `json:"constraints" swaggertype:"object"`
 	PsychologicalState json.RawMessage `json:"psychological_state" swaggertype:"object"`
 	DifficultyLevel    *float64        `json:"difficulty_level,omitempty"`
+	DeliveryMode       string          `json:"delivery_mode,omitempty"`
+	EmotionalState     string          `json:"emotional_state,omitempty"`
+	AIProfileSummary   json.RawMessage `json:"ai_profile_summary,omitempty" swaggertype:"object"`
 }
 
 // UpdateProfileInput represents profile update input
@@ -23,6 +26,9 @@ type UpdateProfileInput struct {
 	PsychologicalState  json.RawMessage `json:"psychological_state,omitempty" swaggertype:"object"`
 	DifficultyLevel     *float64        `json:"difficulty_level,omitempty"`
 	OnboardingCompleted *bool           `json:"onboarding_completed,omitempty"`
+	DeliveryMode        *string         `json:"delivery_mode,omitempty"`
+	EmotionalState      *string         `json:"emotional_state,omitempty"`
+	AIProfileSummary    json.RawMessage `json:"ai_profile_summary,omitempty" swaggertype:"object"`
 }
 
 // LogExecutionInput represents task execution log input
@@ -42,6 +48,9 @@ type ProfileResponse struct {
 	PsychologicalState  json.RawMessage `json:"psychological_state" swaggertype:"object"`
 	DifficultyLevel     float64         `json:"difficulty_level"`
 	OnboardingCompleted bool            `json:"onboarding_completed"`
+	DeliveryMode        string          `json:"delivery_mode"`
+	EmotionalState      string          `json:"emotional_state"`
+	AIProfileSummary    json.RawMessage `json:"ai_profile_summary" swaggertype:"object"`
 	CreatedAt           string          `json:"created_at"`
 	UpdatedAt           string          `json:"updated_at"`
 }
@@ -62,13 +71,16 @@ type PlanResponse struct {
 // TaskResponse represents a plan task
 // @Description Plan task response
 type TaskResponse struct {
-	ID          string  `json:"id"`
-	Title       string  `json:"title"`
-	Description string  `json:"description"`
-	Category    string  `json:"category"`
-	Difficulty  float64 `json:"difficulty"`
-	Position    int     `json:"position"`
-	CreatedAt   string  `json:"created_at"`
+	ID            string  `json:"id"`
+	Title         string  `json:"title"`
+	Description   string  `json:"description"`
+	Category      string  `json:"category"`
+	Difficulty    float64 `json:"difficulty"`
+	Position      int     `json:"position"`
+	TaskType      string  `json:"task_type"`
+	SuggestedTime string  `json:"suggested_time"`
+	AnchorLabel   string  `json:"anchor_label"`
+	CreatedAt     string  `json:"created_at"`
 }
 
 // ExecutionLogResponse represents a task execution log entry
@@ -155,6 +167,9 @@ type PlanRequest struct {
 	DifficultyLevel    float64         `json:"difficulty_level"`
 	CompletionRate     float64         `json:"completion_rate"`
 	StreakCount        int             `json:"streak_count"`
+	DeliveryMode       string          `json:"delivery_mode"`
+	EmotionalState     string          `json:"emotional_state"`
+	AIProfileSummary   json.RawMessage `json:"ai_profile_summary"`
 }
 
 // PlanResult is the structured output from the planning agent.
@@ -164,11 +179,17 @@ type PlanResult struct {
 
 // GeneratedTask represents a single AI-generated task.
 type GeneratedTask struct {
-	Title       string  `json:"title"`
-	Description string  `json:"description"`
-	Category    string  `json:"category"`
-	Difficulty  float64 `json:"difficulty"`
+	Title         string  `json:"title"`
+	Description   string  `json:"description"`
+	Category      string  `json:"category"`
+	Difficulty    float64 `json:"difficulty"`
+	TaskType      string  `json:"task_type"`
+	SuggestedTime string  `json:"suggested_time"`
+	AnchorLabel   string  `json:"anchor_label"`
 }
+
+var validTaskTypes = []string{"regular", "anchor"}
+var validAnchorLabels = []string{"", "wake_window", "activation_activity", "sleep_winddown"}
 
 // Validate checks that the PlanResult contains valid tasks.
 func (r *PlanResult) Validate() error {
@@ -181,6 +202,15 @@ func (r *PlanResult) Validate() error {
 		}
 		if t.Difficulty < 1.0 || t.Difficulty > 10.0 {
 			return fmt.Errorf("task %d: difficulty %.1f out of range [1.0, 10.0]", i, t.Difficulty)
+		}
+		// Default task_type to "regular" if empty
+		if t.TaskType == "" {
+			r.Tasks[i].TaskType = "regular"
+		} else if !slices.Contains(validTaskTypes, t.TaskType) {
+			return fmt.Errorf("task %d: invalid task_type %q", i, t.TaskType)
+		}
+		if !slices.Contains(validAnchorLabels, t.AnchorLabel) {
+			return fmt.Errorf("task %d: invalid anchor_label %q", i, t.AnchorLabel)
 		}
 	}
 	return nil
@@ -213,4 +243,32 @@ func (r *AdaptationResult) Validate() error {
 		return fmt.Errorf("reason must be non-empty when should_adapt is true")
 	}
 	return nil
+}
+
+// --- Onboarding Chat Types ---
+
+// OnboardingChatMessage represents a single message in the profiling conversation.
+type OnboardingChatMessage struct {
+	Role    string `json:"role"`
+	Content string `json:"content"`
+}
+
+// OnboardingChatRequest is the input to the profiling conversation agent.
+type OnboardingChatRequest struct {
+	UserMessage        string                  `json:"user_message"`
+	History            []OnboardingChatMessage `json:"history"`
+	Goals              json.RawMessage         `json:"goals"`
+	Constraints        json.RawMessage         `json:"constraints"`
+	PsychologicalState json.RawMessage         `json:"psychological_state"`
+}
+
+// OnboardingChatResponse is the output from the profiling conversation agent.
+type OnboardingChatResponse struct {
+	AIMessage                 string                  `json:"ai_message"`
+	History                   []OnboardingChatMessage `json:"history"`
+	TurnNumber                int                     `json:"turn_number"`
+	IsComplete                bool                    `json:"is_complete"`
+	Summary                   json.RawMessage         `json:"summary,omitempty" swaggertype:"object"`
+	RecommendedDeliveryMode   string                  `json:"recommended_delivery_mode,omitempty"`
+	RecommendedEmotionalState string                  `json:"recommended_emotional_state,omitempty"`
 }

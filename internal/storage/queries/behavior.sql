@@ -1,8 +1,8 @@
 -- Behavior Profiles
 
 -- name: CreateBehaviorProfile :one
-INSERT INTO behavior_profiles (user_id, goals, constraints, psychological_state, difficulty_level, onboarding_completed)
-VALUES ($1, $2, $3, $4, $5, $6)
+INSERT INTO behavior_profiles (user_id, goals, constraints, psychological_state, difficulty_level, onboarding_completed, delivery_mode, emotional_state, ai_profile_summary)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 RETURNING *;
 
 -- name: GetBehaviorProfileByUserID :one
@@ -14,7 +14,10 @@ SET goals = COALESCE(sqlc.narg('goals'), goals),
     constraints = COALESCE(sqlc.narg('constraints'), constraints),
     psychological_state = COALESCE(sqlc.narg('psychological_state'), psychological_state),
     difficulty_level = COALESCE(sqlc.narg('difficulty_level'), difficulty_level),
-    onboarding_completed = COALESCE(sqlc.narg('onboarding_completed'), onboarding_completed)
+    onboarding_completed = COALESCE(sqlc.narg('onboarding_completed'), onboarding_completed),
+    delivery_mode = COALESCE(sqlc.narg('delivery_mode'), delivery_mode),
+    emotional_state = COALESCE(sqlc.narg('emotional_state'), emotional_state),
+    ai_profile_summary = COALESCE(sqlc.narg('ai_profile_summary'), ai_profile_summary)
 WHERE user_id = sqlc.arg('user_id')
 RETURNING *;
 
@@ -48,8 +51,8 @@ LIMIT $2;
 -- Plan Tasks
 
 -- name: CreatePlanTask :one
-INSERT INTO plan_tasks (daily_plan_id, title, description, category, difficulty, position)
-VALUES ($1, $2, $3, $4, $5, $6)
+INSERT INTO plan_tasks (daily_plan_id, title, description, category, difficulty, position, task_type, suggested_time, anchor_label)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 RETURNING *;
 
 -- name: GetPlanTasksByDailyPlan :many

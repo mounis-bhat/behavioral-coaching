@@ -40,6 +40,7 @@ func NewRouter(cfg *config.Config, store *storage.Store, behaviorService *behavi
 	mux.Handle("POST /api/auth/verify-email/resend", authHandler.RequireAuth(http.HandlerFunc(authHandler.HandleResendVerification)))
 
 	// Behavior routes
+	mux.Handle("POST /api/behavior/onboarding/chat", authHandler.RequireAuth(http.HandlerFunc(behaviorHandler.HandleOnboardingChat)))
 	mux.Handle("POST /api/behavior/profile", authHandler.RequireAuth(http.HandlerFunc(behaviorHandler.HandleCreateProfile)))
 	mux.Handle("GET /api/behavior/profile", authHandler.RequireAuth(http.HandlerFunc(behaviorHandler.HandleGetProfile)))
 	mux.Handle("PUT /api/behavior/profile", authHandler.RequireAuth(http.HandlerFunc(behaviorHandler.HandleUpdateProfile)))

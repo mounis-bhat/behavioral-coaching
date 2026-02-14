@@ -12,3 +12,8 @@ type PlanGenerator interface {
 type AdaptationAdvisor interface {
 	Advise(ctx context.Context, req AdaptationRequest) (*AdaptationResult, error)
 }
+
+// ProfileConversationAgent handles the multi-turn onboarding profiling conversation.
+type ProfileConversationAgent interface {
+	Chat(ctx context.Context, req OnboardingChatRequest) (*OnboardingChatResponse, error)
+}

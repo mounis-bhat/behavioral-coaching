@@ -23,13 +23,14 @@ var (
 )
 
 type Service struct {
-	queries *db.Queries
-	planner PlanGenerator
-	advisor AdaptationAdvisor
+	queries  *db.Queries
+	planner  PlanGenerator
+	advisor  AdaptationAdvisor
+	profiler ProfileConversationAgent
 }
 
-func NewService(queries *db.Queries, planner PlanGenerator, advisor AdaptationAdvisor) *Service {
-	return &Service{queries: queries, planner: planner, advisor: advisor}
+func NewService(queries *db.Queries, planner PlanGenerator, advisor AdaptationAdvisor, profiler ProfileConversationAgent) *Service {
+	return &Service{queries: queries, planner: planner, advisor: advisor, profiler: profiler}
 }
 
 func (s *Service) CreateProfile(ctx context.Context, userID string, input CreateProfileInput) (*ProfileResponse, error) {
@@ -41,9 +42,14 @@ func (s *Service) CreateProfile(ctx context.Context, userID string, input Create
 	goals := defaultJSON(input.Goals, []byte("[]"))
 	constraints := defaultJSON(input.Constraints, []byte("{}"))
 	psychState := defaultJSON(input.PsychologicalState, []byte("{}"))
+	aiProfileSummary := defaultJSON(input.AIProfileSummary, []byte("{}"))
 	difficulty := 5.0
 	if input.DifficultyLevel != nil {
 		difficulty = *input.DifficultyLevel
+	}
+	deliveryMode := "flexible_list"
+	if input.DeliveryMode != "" {
+		deliveryMode = input.DeliveryMode
 	}
 
 	profile, err := s.queries.CreateBehaviorProfile(ctx, db.CreateBehaviorProfileParams{
@@ -53,6 +59,9 @@ func (s *Service) CreateProfile(ctx context.Context, userID string, input Create
 		PsychologicalState:  psychState,
 		DifficultyLevel:     numericFromFloat(difficulty),
 		OnboardingCompleted: false,
+		DeliveryMode:        deliveryMode,
+		EmotionalState:      input.EmotionalState,
+		AiProfileSummary:    aiProfileSummary,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("create behavior profile: %w", err)
@@ -102,6 +111,15 @@ func (s *Service) UpdateProfile(ctx context.Context, userID string, input Update
 	}
 	if input.OnboardingCompleted != nil {
 		params.OnboardingCompleted = pgtype.Bool{Bool: *input.OnboardingCompleted, Valid: true}
+	}
+	if input.DeliveryMode != nil {
+		params.DeliveryMode = pgtype.Text{String: *input.DeliveryMode, Valid: true}
+	}
+	if input.EmotionalState != nil {
+		params.EmotionalState = pgtype.Text{String: *input.EmotionalState, Valid: true}
+	}
+	if input.AIProfileSummary != nil {
+		params.AiProfileSummary = input.AIProfileSummary
 	}
 
 	profile, err := s.queries.UpdateBehaviorProfile(ctx, params)
@@ -158,7 +176,10 @@ func (s *Service) GenerateDailyPlan(ctx context.Context, userID string) (*PlanRe
 		PsychologicalState: defaultJSON(profile.PsychologicalState, []byte("{}")),
 		DifficultyLevel:    difficulty,
 		CompletionRate:     completionRate,
-		StreakCount:         streakCount,
+		StreakCount:        streakCount,
+		DeliveryMode:       profile.DeliveryMode,
+		EmotionalState:     profile.EmotionalState,
+		AIProfileSummary:   defaultJSON(profile.AiProfileSummary, []byte("{}")),
 	}
 
 	aiResult, err := s.planner.GeneratePlan(ctx, planReq)
@@ -180,12 +201,15 @@ func (s *Service) GenerateDailyPlan(ctx context.Context, userID string) (*PlanRe
 	var tasks []db.PlanTask
 	for i, gt := range aiResult.Tasks {
 		task, err := s.queries.CreatePlanTask(ctx, db.CreatePlanTaskParams{
-			DailyPlanID: plan.ID,
-			Title:       gt.Title,
-			Description: gt.Description,
-			Category:    gt.Category,
-			Difficulty:  numericFromFloat(gt.Difficulty),
-			Position:    int32(i + 1),
+			DailyPlanID:   plan.ID,
+			Title:         gt.Title,
+			Description:   gt.Description,
+			Category:      gt.Category,
+			Difficulty:    numericFromFloat(gt.Difficulty),
+			Position:      int32(i + 1),
+			TaskType:      gt.TaskType,
+			SuggestedTime: gt.SuggestedTime,
+			AnchorLabel:   gt.AnchorLabel,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("create plan task: %w", err)
@@ -194,6 +218,11 @@ func (s *Service) GenerateDailyPlan(ctx context.Context, userID string) (*PlanRe
 	}
 
 	return planToResponse(plan, tasks), nil
+}
+
+// OnboardingChat delegates to the profiling conversation agent.
+func (s *Service) OnboardingChat(ctx context.Context, req OnboardingChatRequest) (*OnboardingChatResponse, error) {
+	return s.profiler.Chat(ctx, req)
 }
 
 func (s *Service) GetTodaysPlan(ctx context.Context, userID string) (*PlanResponse, error) {
@@ -635,6 +664,9 @@ func profileToResponse(p db.BehaviorProfile) *ProfileResponse {
 		PsychologicalState:  p.PsychologicalState,
 		DifficultyLevel:     numericToFloat(p.DifficultyLevel),
 		OnboardingCompleted: p.OnboardingCompleted,
+		DeliveryMode:        p.DeliveryMode,
+		EmotionalState:      p.EmotionalState,
+		AIProfileSummary:    defaultJSON(p.AiProfileSummary, []byte("{}")),
 		CreatedAt:           p.CreatedAt.Time.Format(time.RFC3339),
 		UpdatedAt:           p.UpdatedAt.Time.Format(time.RFC3339),
 	}
@@ -644,13 +676,16 @@ func planToResponse(p db.DailyPlan, tasks []db.PlanTask) *PlanResponse {
 	taskResponses := make([]TaskResponse, len(tasks))
 	for i, t := range tasks {
 		taskResponses[i] = TaskResponse{
-			ID:          uuidToString(t.ID),
-			Title:       t.Title,
-			Description: t.Description,
-			Category:    t.Category,
-			Difficulty:  numericToFloat(t.Difficulty),
-			Position:    int(t.Position),
-			CreatedAt:   t.CreatedAt.Time.Format(time.RFC3339),
+			ID:            uuidToString(t.ID),
+			Title:         t.Title,
+			Description:   t.Description,
+			Category:      t.Category,
+			Difficulty:    numericToFloat(t.Difficulty),
+			Position:      int(t.Position),
+			TaskType:      t.TaskType,
+			SuggestedTime: t.SuggestedTime,
+			AnchorLabel:   t.AnchorLabel,
+			CreatedAt:     t.CreatedAt.Time.Format(time.RFC3339),
 		}
 	}
 

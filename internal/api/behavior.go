@@ -312,6 +312,41 @@ func (h *BehaviorHandler) HandleGetAnalytics(w http.ResponseWriter, r *http.Requ
 	writeJSON(w, http.StatusOK, analytics)
 }
 
+// HandleOnboardingChat handles a turn of the onboarding profiling conversation
+// @Summary      Onboarding chat
+// @Description  Processes a turn of the AI profiling conversation during onboarding
+// @Tags         behavior
+// @Accept       json
+// @Produce      json
+// @Param        request body behavior.OnboardingChatRequest true "Chat request with message and history"
+// @Success      200  {object}  behavior.OnboardingChatResponse
+// @Failure      400  {object}  map[string]string
+// @Failure      401  {object}  map[string]string
+// @Failure      500  {object}  map[string]string
+// @Router       /behavior/onboarding/chat [post]
+func (h *BehaviorHandler) HandleOnboardingChat(w http.ResponseWriter, r *http.Request) {
+	_, ok := userFromContext(r.Context())
+	if !ok {
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return
+	}
+
+	var req behavior.OnboardingChatRequest
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid JSON body"})
+		return
+	}
+
+	resp, err := h.service.OnboardingChat(r.Context(), req)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to process chat"})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, resp)
+}
+
 // HandleGetTodaysExecutionLogs returns today's execution logs for the authenticated user
 // @Summary      Get today's execution logs
 // @Description  Returns execution logs for today's active plan

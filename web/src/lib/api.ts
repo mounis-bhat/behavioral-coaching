@@ -10,11 +10,25 @@ type DeepRequired<T> = {
 			: NonNullable<T[K]>;
 };
 
-// Types derived from auto-generated OpenAPI schema
+// Types derived from auto-generated OpenAPI schema, extended with new fields
+// that may not yet be in the generated api-types.ts.
 export type HealthResponse = components['schemas']['api.HealthResponse'];
-export type ProfileResponse = DeepRequired<components['schemas']['behavior.ProfileResponse']>;
-export type PlanResponse = DeepRequired<components['schemas']['behavior.PlanResponse']>;
-export type TaskResponse = DeepRequired<components['schemas']['behavior.TaskResponse']>;
+export type ProfileResponse = DeepRequired<components['schemas']['behavior.ProfileResponse']> & {
+	delivery_mode: string;
+	emotional_state: string;
+	ai_profile_summary: Record<string, unknown>;
+};
+export type TaskResponse = DeepRequired<components['schemas']['behavior.TaskResponse']> & {
+	task_type: string;
+	suggested_time: string;
+	anchor_label: string;
+};
+export type PlanResponse = Omit<
+	DeepRequired<components['schemas']['behavior.PlanResponse']>,
+	'tasks'
+> & {
+	tasks: TaskResponse[];
+};
 export type ExecutionLogResponse = DeepRequired<
 	components['schemas']['behavior.ExecutionLogResponse']
 >;
@@ -35,6 +49,9 @@ type CreateProfileInput = {
 	constraints?: Record<string, unknown>;
 	psychological_state?: Record<string, unknown>;
 	difficulty_level?: number;
+	delivery_mode?: string;
+	emotional_state?: string;
+	ai_profile_summary?: Record<string, unknown>;
 };
 type UpdateProfileInput = {
 	goals?: Record<string, unknown>;
@@ -42,8 +59,27 @@ type UpdateProfileInput = {
 	psychological_state?: Record<string, unknown>;
 	difficulty_level?: number;
 	onboarding_completed?: boolean;
+	delivery_mode?: string;
+	emotional_state?: string;
+	ai_profile_summary?: Record<string, unknown>;
 };
 type LogExecutionInput = components['schemas']['behavior.LogExecutionInput'];
+
+// Onboarding chat types
+export type OnboardingChatMessage = {
+	role: 'user' | 'assistant';
+	content: string;
+};
+
+export type OnboardingChatResponse = {
+	ai_message: string;
+	history: OnboardingChatMessage[];
+	turn_number: number;
+	is_complete: boolean;
+	summary?: Record<string, unknown>;
+	recommended_delivery_mode?: string;
+	recommended_emotional_state?: string;
+};
 
 // Type-safe API client
 const BASE_URL = '/api';
@@ -198,6 +234,38 @@ export async function fetchAdaptations(): Promise<ApiResponse<AdaptationLogRespo
 		const res = await fetch(`${BASE_URL}/behavior/adaptations`);
 		if (!res.ok) throw new Error(`HTTP ${res.status}`);
 		const data: AdaptationLogResponse[] = await res.json();
+		return { data, error: null };
+	} catch (e) {
+		return { data: null, error: e instanceof Error ? e.message : 'Unknown error' };
+	}
+}
+
+export async function onboardingChat(
+	userMessage: string,
+	history: OnboardingChatMessage[],
+	context: {
+		goals?: Record<string, unknown>;
+		constraints?: Record<string, unknown>;
+		psychological_state?: Record<string, unknown>;
+	}
+): Promise<ApiResponse<OnboardingChatResponse>> {
+	try {
+		const res = await fetch(`${BASE_URL}/behavior/onboarding/chat`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({
+				user_message: userMessage,
+				history,
+				goals: context.goals ?? {},
+				constraints: context.constraints ?? {},
+				psychological_state: context.psychological_state ?? {}
+			})
+		});
+		if (!res.ok) {
+			const payload = await res.json();
+			throw new Error(payload.error ?? `HTTP ${res.status}`);
+		}
+		const data: OnboardingChatResponse = await res.json();
 		return { data, error: null };
 	} catch (e) {
 		return { data: null, error: e instanceof Error ? e.message : 'Unknown error' };

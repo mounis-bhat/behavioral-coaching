@@ -55,6 +55,9 @@ type BehaviorProfile struct {
 	CreatedAt           pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt           pgtype.Timestamptz `json:"updated_at"`
 	LastNotifiedAt      pgtype.Timestamptz `json:"last_notified_at"`
+	DeliveryMode        string             `json:"delivery_mode"`
+	EmotionalState      string             `json:"emotional_state"`
+	AiProfileSummary    []byte             `json:"ai_profile_summary"`
 }
 
 type DailyPlan struct {
@@ -79,14 +82,17 @@ type ExecutionLog struct {
 }
 
 type PlanTask struct {
-	ID          pgtype.UUID        `json:"id"`
-	DailyPlanID pgtype.UUID        `json:"daily_plan_id"`
-	Title       string             `json:"title"`
-	Description string             `json:"description"`
-	Category    string             `json:"category"`
-	Difficulty  pgtype.Numeric     `json:"difficulty"`
-	Position    int32              `json:"position"`
-	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	ID            pgtype.UUID        `json:"id"`
+	DailyPlanID   pgtype.UUID        `json:"daily_plan_id"`
+	Title         string             `json:"title"`
+	Description   string             `json:"description"`
+	Category      string             `json:"category"`
+	Difficulty    pgtype.Numeric     `json:"difficulty"`
+	Position      int32              `json:"position"`
+	CreatedAt     pgtype.Timestamptz `json:"created_at"`
+	TaskType      string             `json:"task_type"`
+	SuggestedTime string             `json:"suggested_time"`
+	AnchorLabel   string             `json:"anchor_label"`
 }
 
 type Session struct {

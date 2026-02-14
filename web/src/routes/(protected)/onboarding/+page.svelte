@@ -1,12 +1,22 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { onMount } from 'svelte';
-	import { fetchProfile, createProfile, updateProfile, generatePlan } from '$lib/api';
+	import { onMount, tick } from 'svelte';
+	import {
+		fetchProfile,
+		createProfile,
+		updateProfile,
+		generatePlan,
+		onboardingChat,
+		type OnboardingChatMessage,
+		type OnboardingChatResponse
+	} from '$lib/api';
 
 	let step = $state(1);
 	let loading = $state(false);
 	let error = $state<string | null>(null);
 	let initialLoading = $state(true);
+
+	const totalSteps = 7;
 
 	// Step 1: Goals
 	const categories = [
@@ -44,6 +54,64 @@
 		10: 'Extreme - all-out dedication'
 	};
 
+	// Step 5: AI Conversation
+	let chatHistory = $state<OnboardingChatMessage[]>([]);
+	let chatInput = $state('');
+	let chatLoading = $state(false);
+	let chatComplete = $state(false);
+	let chatSummary = $state<Record<string, unknown> | undefined>(undefined);
+	let recommendedDeliveryMode = $state('');
+	let recommendedEmotionalState = $state('');
+	let chatStarted = $state(false);
+
+	// Step 6: Emotional State
+	let selectedEmotionalState = $state('');
+
+	// Step 7: Delivery Mode
+	let selectedDeliveryMode = $state('flexible_list');
+
+	let chatMessagesEl: HTMLDivElement | undefined = $state();
+
+	const emotionalStates = [
+		{
+			id: 'burned_out',
+			label: 'Burned Out',
+			description: 'Depleted energy, feeling empty, everything feels like too much effort'
+		},
+		{
+			id: 'anxious',
+			label: 'Anxious',
+			description: 'Worried, restless, difficulty relaxing, mind racing with concerns'
+		},
+		{
+			id: 'stuck',
+			label: 'Stuck',
+			description:
+				'Lack of direction, procrastinating, feeling trapped or unable to move forward'
+		}
+	];
+
+	const deliveryModes = [
+		{
+			id: 'strict_schedule',
+			label: 'Strict Schedule',
+			description:
+				'Tasks with specific time slots throughout your day. Best if you thrive with clear structure and time blocks.'
+		},
+		{
+			id: 'flexible_list',
+			label: 'Flexible List',
+			description:
+				'An ordered list of tasks to complete at your own pace. Best if you want guidance but value flexibility.'
+		},
+		{
+			id: 'gentle_structure',
+			label: 'Gentle Structure',
+			description:
+				'3 daily anchors plus tiny tasks focused on self-care. Best if you need low-pressure support to rebuild momentum.'
+		}
+	];
+
 	onMount(async () => {
 		const result = await fetchProfile();
 		if (result.data && result.data.onboarding_completed) {
@@ -74,12 +142,113 @@
 			error = 'Please select at least one goal category.';
 			return;
 		}
-		if (step < 4) step++;
+		if (step < totalSteps) {
+			step++;
+			if (step === 5 && !chatStarted) {
+				startChat();
+			}
+		}
 	}
 
 	function back() {
 		error = null;
 		if (step > 1) step--;
+	}
+
+	function getOnboardingContext() {
+		return {
+			goals: {
+				categories: [...selectedCategories],
+				free_text: freeTextGoals || undefined
+			},
+			constraints: {
+				time_availability: timeAvailability,
+				limitations: limitations || undefined
+			},
+			psychological_state: {
+				motivation,
+				stress,
+				energy
+			}
+		};
+	}
+
+	async function startChat() {
+		chatStarted = true;
+		chatLoading = true;
+		error = null;
+		try {
+			const result = await onboardingChat('', [], getOnboardingContext());
+			if (result.error) throw new Error(result.error);
+			if (result.data) {
+				chatHistory = result.data.history;
+				chatComplete = result.data.is_complete;
+				if (result.data.is_complete) {
+					applyRecommendations(result.data);
+				}
+			}
+		} catch (e) {
+			error = e instanceof Error ? e.message : 'Failed to start conversation';
+		} finally {
+			chatLoading = false;
+			await tick();
+			scrollChatToBottom();
+		}
+	}
+
+	async function sendChatMessage() {
+		if (!chatInput.trim() || chatLoading || chatComplete) return;
+		const message = chatInput.trim();
+		chatInput = '';
+		chatLoading = true;
+		error = null;
+		try {
+			const result = await onboardingChat(message, chatHistory, getOnboardingContext());
+			if (result.error) throw new Error(result.error);
+			if (result.data) {
+				chatHistory = result.data.history;
+				chatComplete = result.data.is_complete;
+				if (result.data.is_complete) {
+					applyRecommendations(result.data);
+				}
+			}
+		} catch (e) {
+			error = e instanceof Error ? e.message : 'Failed to send message';
+		} finally {
+			chatLoading = false;
+			await tick();
+			scrollChatToBottom();
+		}
+	}
+
+	function applyRecommendations(data: OnboardingChatResponse) {
+		chatSummary = data.summary;
+		if (data.recommended_delivery_mode) {
+			recommendedDeliveryMode = data.recommended_delivery_mode;
+			selectedDeliveryMode = data.recommended_delivery_mode;
+		}
+		if (data.recommended_emotional_state) {
+			recommendedEmotionalState = data.recommended_emotional_state;
+			selectedEmotionalState = data.recommended_emotional_state;
+		}
+	}
+
+	function skipChat() {
+		chatComplete = true;
+		step++;
+	}
+
+	function scrollChatToBottom() {
+		if (chatMessagesEl) {
+			chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+		}
+	}
+
+	function handleChatKeydown(e: KeyboardEvent) {
+		if (e.key === 'Enter' && !e.shiftKey) {
+			e.preventDefault();
+			sendChatMessage();
+		}
 	}
 
 	async function complete() {
@@ -104,7 +273,10 @@
 				goals,
 				constraints,
 				psychological_state,
-				difficulty_level: difficulty
+				difficulty_level: difficulty,
+				delivery_mode: selectedDeliveryMode,
+				emotional_state: selectedEmotionalState,
+				ai_profile_summary: chatSummary ?? {}
 			});
 			if (createResult.error) throw new Error(createResult.error);
 
@@ -130,12 +302,12 @@
 {:else}
 	<main class="mx-auto max-w-xl p-8">
 		<h1 class="mb-2 text-3xl font-bold">Set up your profile</h1>
-		<p class="mb-6 text-sm text-gray-500">Step {step} of 4</p>
+		<p class="mb-6 text-sm text-gray-500">Step {step} of {totalSteps}</p>
 
 		<div class="mb-8 h-2 w-full rounded-full bg-gray-200">
 			<div
 				class="h-2 rounded-full bg-black transition-all duration-300"
-				style="width: {(step / 4) * 100}%"
+				style="width: {(step / totalSteps) * 100}%"
 			></div>
 		</div>
 
@@ -274,6 +446,126 @@
 					<p class="mt-2 text-sm text-gray-600">{difficultyLabels[difficulty]}</p>
 				</div>
 			</section>
+		{:else if step === 5}
+			<section>
+				<h2 class="mb-1 text-lg font-semibold">Let's get to know you</h2>
+				<p class="mb-4 text-sm text-gray-500">
+					A brief conversation to understand your situation better. This helps us personalize your
+					experience.
+				</p>
+
+				<div
+					bind:this={chatMessagesEl}
+					class="mb-4 max-h-80 space-y-3 overflow-y-auto rounded-lg border bg-gray-50 p-4"
+				>
+					{#each chatHistory as msg}
+						<div class="flex {msg.role === 'user' ? 'justify-end' : 'justify-start'}">
+							<div
+								class="max-w-[80%] rounded-2xl px-4 py-2 text-sm {msg.role === 'user'
+									? 'bg-black text-white'
+									: 'bg-white text-gray-800 shadow-sm'}"
+							>
+								{msg.content}
+							</div>
+						</div>
+					{/each}
+					{#if chatLoading}
+						<div class="flex justify-start">
+							<div class="rounded-2xl bg-white px-4 py-2 text-sm text-gray-400 shadow-sm">
+								Thinking...
+							</div>
+						</div>
+					{/if}
+				</div>
+
+				{#if !chatComplete}
+					<div class="flex gap-2">
+						<input
+							type="text"
+							bind:value={chatInput}
+							onkeydown={handleChatKeydown}
+							placeholder="Type your response..."
+							disabled={chatLoading || !chatStarted}
+							class="flex-1 rounded border px-3 py-2 text-sm disabled:opacity-60"
+						/>
+						<button
+							type="button"
+							onclick={sendChatMessage}
+							disabled={chatLoading || !chatInput.trim()}
+							class="rounded bg-black px-4 py-2 text-sm text-white disabled:opacity-60"
+						>
+							Send
+						</button>
+					</div>
+				{/if}
+			</section>
+		{:else if step === 6}
+			<section>
+				<h2 class="mb-1 text-lg font-semibold">How are you feeling?</h2>
+				<p class="mb-4 text-sm text-gray-500">
+					Select the emotional state that best describes where you're at right now. This helps us
+					calibrate your plan.
+				</p>
+				<div class="space-y-3">
+					{#each emotionalStates as state}
+						<button
+							type="button"
+							onclick={() => (selectedEmotionalState = state.id)}
+							class="relative w-full rounded-lg border p-4 text-left transition {selectedEmotionalState === state.id
+								? 'border-black bg-gray-50'
+								: 'border-gray-200 hover:border-gray-400'}"
+						>
+							{#if recommendedEmotionalState === state.id}
+								<span
+									class="absolute -top-2 right-3 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700"
+								>
+									Recommended for you
+								</span>
+							{/if}
+							<p class="font-medium">{state.label}</p>
+							<p class="mt-1 text-sm text-gray-500">{state.description}</p>
+						</button>
+					{/each}
+					<button
+						type="button"
+						onclick={() => (selectedEmotionalState = '')}
+						class="w-full rounded-lg border p-4 text-left transition {selectedEmotionalState === ''
+							? 'border-black bg-gray-50'
+							: 'border-gray-200 hover:border-gray-400'}"
+					>
+						<p class="font-medium">None of these</p>
+						<p class="mt-1 text-sm text-gray-500">I'm doing okay, just looking to improve.</p>
+					</button>
+				</div>
+			</section>
+		{:else if step === 7}
+			<section>
+				<h2 class="mb-1 text-lg font-semibold">How should we deliver your plan?</h2>
+				<p class="mb-4 text-sm text-gray-500">
+					Choose how you'd like your daily tasks structured.
+				</p>
+				<div class="space-y-3">
+					{#each deliveryModes as mode}
+						<button
+							type="button"
+							onclick={() => (selectedDeliveryMode = mode.id)}
+							class="relative w-full rounded-lg border p-4 text-left transition {selectedDeliveryMode === mode.id
+								? 'border-black bg-gray-50'
+								: 'border-gray-200 hover:border-gray-400'}"
+						>
+							{#if recommendedDeliveryMode === mode.id}
+								<span
+									class="absolute -top-2 right-3 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700"
+								>
+									Recommended for you
+								</span>
+							{/if}
+							<p class="font-medium">{mode.label}</p>
+							<p class="mt-1 text-sm text-gray-500">{mode.description}</p>
+						</button>
+					{/each}
+				</div>
+			</section>
 		{/if}
 
 		<div class="mt-8 flex justify-between">
@@ -290,7 +582,27 @@
 				<div></div>
 			{/if}
 
-			{#if step < 4}
+			{#if step === 5}
+				<div class="flex gap-2">
+					{#if !chatComplete}
+						<button
+							type="button"
+							onclick={skipChat}
+							class="rounded border px-4 py-2 text-sm text-gray-600 hover:border-gray-400"
+						>
+							Skip
+						</button>
+					{:else}
+						<button
+							type="button"
+							onclick={next}
+							class="rounded bg-black px-4 py-2 text-sm text-white"
+						>
+							Continue
+						</button>
+					{/if}
+				</div>
+			{:else if step < totalSteps}
 				<button
 					type="button"
 					onclick={next}
