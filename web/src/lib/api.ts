@@ -1,17 +1,66 @@
-import type {
-	AdherenceResponse,
-	AdaptationLogResponse,
-	AnalyticsResponse,
-	CreateProfileInput,
-	ExecutionLogResponse,
-	HealthResponse,
-	LogExecutionInput,
-	OnboardingChatMessage,
-	OnboardingChatResponse,
-	PlanResponse,
-	ProfileResponse,
-	UpdateProfileInput
-} from './api-types';
+import type { components } from './api-types';
+
+// Manual extensions to the generated OpenAPI types.
+type DeepRequired<T> = {
+	[K in keyof T]-?: NonNullable<T[K]> extends (infer U)[]
+		? DeepRequired<U>[]
+		: NonNullable<T[K]> extends object
+			? DeepRequired<NonNullable<T[K]>>
+			: NonNullable<T[K]>;
+};
+
+export type HealthResponse = components['schemas']['api.HealthResponse'];
+export type ProfileResponse = DeepRequired<components['schemas']['behavior.ProfileResponse']>;
+export type TaskResponse = DeepRequired<components['schemas']['behavior.TaskResponse']>;
+export type PlanResponse = Omit<
+	DeepRequired<components['schemas']['behavior.PlanResponse']>,
+	'tasks'
+> & {
+	tasks: TaskResponse[];
+};
+export type ExecutionLogResponse = DeepRequired<
+	components['schemas']['behavior.ExecutionLogResponse']
+>;
+export type AdherenceResponse = DeepRequired<components['schemas']['behavior.AdherenceResponse']>;
+export type AdaptationLogResponse = DeepRequired<
+	components['schemas']['behavior.AdaptationLogResponse']
+>;
+export type AnalyticsResponse = DeepRequired<components['schemas']['behavior.AnalyticsResponse']>;
+
+export type CreateProfileInput = Omit<
+	components['schemas']['behavior.CreateProfileInput'],
+	'goals' | 'constraints' | 'psychological_state' | 'ai_profile_summary'
+> & {
+	goals?: Record<string, unknown>;
+	constraints?: Record<string, unknown>;
+	psychological_state?: Record<string, unknown>;
+	ai_profile_summary?: Record<string, unknown>;
+};
+
+export type UpdateProfileInput = Omit<
+	components['schemas']['behavior.UpdateProfileInput'],
+	'goals' | 'constraints' | 'psychological_state' | 'ai_profile_summary'
+> & {
+	goals?: Record<string, unknown>;
+	constraints?: Record<string, unknown>;
+	psychological_state?: Record<string, unknown>;
+	ai_profile_summary?: Record<string, unknown>;
+};
+
+export type LogExecutionInput = components['schemas']['behavior.LogExecutionInput'];
+
+export type OnboardingChatMessage = {
+	role: 'user' | 'assistant';
+	content: string;
+};
+
+export type OnboardingChatResponse = Omit<
+	DeepRequired<components['schemas']['behavior.OnboardingChatResponse']>,
+	'history' | 'summary'
+> & {
+	history: OnboardingChatMessage[];
+	summary?: Record<string, unknown>;
+};
 
 // Type-safe API client
 const BASE_URL = '/api';

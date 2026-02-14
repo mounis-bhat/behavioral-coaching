@@ -60,6 +60,19 @@ func NewProfilingAgent(g *genkit.Genkit) *ProfilingAgent {
 			messages = append(messages, ai.NewUserMessage(ai.NewTextPart(input.UserMessage)))
 		}
 
+		hasUserMessage := input.UserMessage != ""
+		if !hasUserMessage {
+			for _, msg := range input.History {
+				if msg.Role == "user" && msg.Content != "" {
+					hasUserMessage = true
+					break
+				}
+			}
+		}
+		if !hasUserMessage {
+			messages = append(messages, ai.NewUserMessage(ai.NewTextPart("Please start the conversation.")))
+		}
+
 		// Build updated history
 		newHistory := make([]appbehavior.OnboardingChatMessage, len(input.History))
 		copy(newHistory, input.History)
