@@ -1,15 +1,16 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 	import { onMount, tick } from 'svelte';
+	import { SvelteSet } from 'svelte/reactivity';
 	import {
 		fetchProfile,
 		createProfile,
 		updateProfile,
 		generatePlan,
-		onboardingChat,
-		type OnboardingChatMessage,
-		type OnboardingChatResponse
+		onboardingChat
 	} from '$lib/api';
+	import type { OnboardingChatMessage, OnboardingChatResponse } from '$lib/api-types';
 
 	let step = $state(1);
 	let loading = $state(false);
@@ -26,7 +27,7 @@
 		{ id: 'relationships', label: 'Relationships' },
 		{ id: 'productivity', label: 'Productivity' }
 	];
-	let selectedCategories = $state<Set<string>>(new Set());
+	const selectedCategories = new SvelteSet<string>();
 	let freeTextGoals = $state('');
 
 	// Step 2: Constraints
@@ -70,7 +71,7 @@
 	// Step 7: Delivery Mode
 	let selectedDeliveryMode = $state('flexible_list');
 
-	let chatMessagesEl: HTMLDivElement | undefined = $state();
+	let chatMessagesEl: HTMLDivElement | null = null;
 
 	const emotionalStates = [
 		{
@@ -86,8 +87,7 @@
 		{
 			id: 'stuck',
 			label: 'Stuck',
-			description:
-				'Lack of direction, procrastinating, feeling trapped or unable to move forward'
+			description: 'Lack of direction, procrastinating, feeling trapped or unable to move forward'
 		}
 	];
 
@@ -115,20 +115,18 @@
 	onMount(async () => {
 		const result = await fetchProfile();
 		if (result.data && result.data.onboarding_completed) {
-			await goto('/dashboard');
+			await goto(resolve('/dashboard'));
 			return;
 		}
 		initialLoading = false;
 	});
 
 	function toggleCategory(id: string) {
-		const next = new Set(selectedCategories);
-		if (next.has(id)) {
-			next.delete(id);
+		if (selectedCategories.has(id)) {
+			selectedCategories.delete(id);
 		} else {
-			next.add(id);
+			selectedCategories.add(id);
 		}
-		selectedCategories = next;
 	}
 
 	function canAdvance(): boolean {
@@ -244,6 +242,15 @@
 		}
 	}
 
+	function setChatMessagesEl(node: HTMLDivElement) {
+		chatMessagesEl = node;
+		return () => {
+			if (chatMessagesEl === node) {
+				chatMessagesEl = null;
+			}
+		};
+	}
+
 	function handleChatKeydown(e: KeyboardEvent) {
 		if (e.key === 'Enter' && !e.shiftKey) {
 			e.preventDefault();
@@ -286,7 +293,7 @@
 			const planResult = await generatePlan();
 			if (planResult.error) throw new Error(planResult.error);
 
-			await goto('/dashboard');
+			await goto(resolve('/dashboard'));
 		} catch (e) {
 			error = e instanceof Error ? e.message : 'Something went wrong';
 		} finally {
@@ -320,11 +327,13 @@
 				<h2 class="mb-1 text-lg font-semibold">What are your goals?</h2>
 				<p class="mb-4 text-sm text-gray-500">Select at least one category you want to focus on.</p>
 				<div class="flex flex-wrap gap-2">
-					{#each categories as cat}
+					{#each categories as cat (cat.id)}
 						<button
 							type="button"
 							onclick={() => toggleCategory(cat.id)}
-							class="rounded-full border px-4 py-2 text-sm transition {selectedCategories.has(cat.id)
+							class="rounded-full border px-4 py-2 text-sm transition {selectedCategories.has(
+								cat.id
+							)
 								? 'border-black bg-black text-white'
 								: 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'}"
 						>
@@ -350,9 +359,7 @@
 				<h2 class="mb-1 text-lg font-semibold">Your constraints</h2>
 				<p class="mb-4 text-sm text-gray-500">Help us tailor your plan to your schedule.</p>
 				<div class="mb-4">
-					<label for="time" class="mb-1 block text-sm font-medium">
-						Daily time available
-					</label>
+					<label for="time" class="mb-1 block text-sm font-medium"> Daily time available </label>
 					<select
 						id="time"
 						bind:value={timeAvailability}
@@ -401,28 +408,14 @@
 							<span>Stress level</span>
 							<span class="text-gray-500">{stress}</span>
 						</label>
-						<input
-							id="stress"
-							type="range"
-							min="1"
-							max="10"
-							bind:value={stress}
-							class="w-full"
-						/>
+						<input id="stress" type="range" min="1" max="10" bind:value={stress} class="w-full" />
 					</div>
 					<div>
 						<label for="energy" class="mb-1 flex justify-between text-sm font-medium">
 							<span>Energy</span>
 							<span class="text-gray-500">{energy}</span>
 						</label>
-						<input
-							id="energy"
-							type="range"
-							min="1"
-							max="10"
-							bind:value={energy}
-							class="w-full"
-						/>
+						<input id="energy" type="range" min="1" max="10" bind:value={energy} class="w-full" />
 					</div>
 				</div>
 			</section>
@@ -455,10 +448,10 @@
 				</p>
 
 				<div
-					bind:this={chatMessagesEl}
+					{@attach setChatMessagesEl}
 					class="mb-4 max-h-80 space-y-3 overflow-y-auto rounded-lg border bg-gray-50 p-4"
 				>
-					{#each chatHistory as msg}
+					{#each chatHistory as msg, idx (idx)}
 						<div class="flex {msg.role === 'user' ? 'justify-end' : 'justify-start'}">
 							<div
 								class="max-w-[80%] rounded-2xl px-4 py-2 text-sm {msg.role === 'user'
@@ -507,11 +500,12 @@
 					calibrate your plan.
 				</p>
 				<div class="space-y-3">
-					{#each emotionalStates as state}
+					{#each emotionalStates as state (state.id)}
 						<button
 							type="button"
 							onclick={() => (selectedEmotionalState = state.id)}
-							class="relative w-full rounded-lg border p-4 text-left transition {selectedEmotionalState === state.id
+							class="relative w-full rounded-lg border p-4 text-left transition {selectedEmotionalState ===
+							state.id
 								? 'border-black bg-gray-50'
 								: 'border-gray-200 hover:border-gray-400'}"
 						>
@@ -541,15 +535,14 @@
 		{:else if step === 7}
 			<section>
 				<h2 class="mb-1 text-lg font-semibold">How should we deliver your plan?</h2>
-				<p class="mb-4 text-sm text-gray-500">
-					Choose how you'd like your daily tasks structured.
-				</p>
+				<p class="mb-4 text-sm text-gray-500">Choose how you'd like your daily tasks structured.</p>
 				<div class="space-y-3">
-					{#each deliveryModes as mode}
+					{#each deliveryModes as mode (mode.id)}
 						<button
 							type="button"
 							onclick={() => (selectedDeliveryMode = mode.id)}
-							class="relative w-full rounded-lg border p-4 text-left transition {selectedDeliveryMode === mode.id
+							class="relative w-full rounded-lg border p-4 text-left transition {selectedDeliveryMode ===
+							mode.id
 								? 'border-black bg-gray-50'
 								: 'border-gray-200 hover:border-gray-400'}"
 						>
@@ -603,11 +596,7 @@
 					{/if}
 				</div>
 			{:else if step < totalSteps}
-				<button
-					type="button"
-					onclick={next}
-					class="rounded bg-black px-4 py-2 text-sm text-white"
-				>
+				<button type="button" onclick={next} class="rounded bg-black px-4 py-2 text-sm text-white">
 					Next
 				</button>
 			{:else}

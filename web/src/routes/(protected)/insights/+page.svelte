@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { fetchAnalytics, type AnalyticsResponse } from '$lib/api';
+	import { fetchAnalytics } from '$lib/api';
+	import type { AnalyticsResponse } from '$lib/api-types';
+	import { resolve } from '$app/paths';
 
 	let loading = $state(true);
 	let error = $state<string | null>(null);
@@ -43,7 +45,7 @@
 	<main class="mx-auto max-w-2xl p-8">
 		<div class="mb-6 flex items-center justify-between">
 			<h1 class="text-3xl font-bold">Insights</h1>
-			<a href="/dashboard" class="text-sm underline">Back to dashboard</a>
+			<a href={resolve('/dashboard')} class="text-sm underline">Back to dashboard</a>
 		</div>
 
 		{#if error}
@@ -58,7 +60,7 @@
 					<p class="text-sm text-gray-500">No data yet. Complete some tasks to see trends.</p>
 				{:else}
 					<div class="space-y-3">
-						{#each analytics.weekly_trends as week}
+						{#each analytics.weekly_trends as week (week.week_start)}
 							{@const pct = Math.round(week.completion_rate * 100)}
 							<div>
 								<div class="mb-1 flex items-baseline justify-between text-sm">
@@ -86,8 +88,12 @@
 					<p class="text-sm text-gray-500">No category data yet.</p>
 				{:else}
 					<div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-						{#each analytics.category_performance as cat}
-							{@const colors = categoryColors[cat.category] ?? { bar: 'bg-gray-500', bg: 'bg-gray-50', text: 'text-gray-800' }}
+						{#each analytics.category_performance as cat (cat.category)}
+							{@const colors = categoryColors[cat.category] ?? {
+								bar: 'bg-gray-500',
+								bg: 'bg-gray-50',
+								text: 'text-gray-800'
+							}}
 							{@const pct = Math.round(cat.completion_rate * 100)}
 							<div class="rounded-lg border p-4 {colors.bg}">
 								<p class="text-sm font-semibold capitalize {colors.text}">{cat.category}</p>
@@ -115,14 +121,19 @@
 				{:else}
 					<div class="overflow-hidden rounded-lg border">
 						<div class="flex items-end gap-1 p-4" style="height: 160px;">
-							{#each analytics.difficulty_trajectory as point}
+							{#each analytics.difficulty_trajectory as point (point.date)}
 								{@const heightPct = (point.difficulty / 10) * 100}
-								<div class="group relative flex flex-1 flex-col items-center justify-end" style="height: 100%;">
+								<div
+									class="group relative flex flex-1 flex-col items-center justify-end"
+									style="height: 100%;"
+								>
 									<div
 										class="w-full min-w-1 rounded-t bg-black transition-all group-hover:bg-gray-700"
 										style="height: {heightPct}%"
 									></div>
-									<div class="pointer-events-none absolute -top-8 hidden rounded bg-gray-800 px-2 py-1 text-xs text-white group-hover:block">
+									<div
+										class="pointer-events-none absolute -top-8 hidden rounded bg-gray-800 px-2 py-1 text-xs text-white group-hover:block"
+									>
 										{formatDate(point.date)}: {point.difficulty}
 									</div>
 								</div>
@@ -130,7 +141,11 @@
 						</div>
 						<div class="flex justify-between border-t bg-gray-50 px-4 py-2 text-xs text-gray-500">
 							<span>{formatDate(analytics.difficulty_trajectory[0].date)}</span>
-							<span>{formatDate(analytics.difficulty_trajectory[analytics.difficulty_trajectory.length - 1].date)}</span>
+							<span
+								>{formatDate(
+									analytics.difficulty_trajectory[analytics.difficulty_trajectory.length - 1].date
+								)}</span
+							>
 						</div>
 					</div>
 				{/if}
@@ -138,7 +153,7 @@
 		{/if}
 
 		<div class="mt-8 border-t pt-6">
-			<a href="/dashboard" class="text-sm underline">Back to dashboard</a>
+			<a href={resolve('/dashboard')} class="text-sm underline">Back to dashboard</a>
 		</div>
 	</main>
 {/if}

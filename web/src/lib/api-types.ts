@@ -4,1892 +4,2057 @@
  */
 
 export interface paths {
-    "/auth/avatar-url": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get avatar URL
-         * @description Returns a presigned GET URL for the current avatar
-         */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["api.AvatarURLResponse"];
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-                /** @description Internal Server Error */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-                /** @description Service Unavailable */
-                503: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/auth/avatar/confirm": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Confirm avatar upload
-         * @description Validates the uploaded object and stores it on the user
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            /** @description Confirm upload request */
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["api.AvatarConfirmRequest"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["api.AvatarURLResponse"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-                /** @description Internal Server Error */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-                /** @description Service Unavailable */
-                503: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/auth/avatar/upload-url": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Get avatar upload URL
-         * @description Creates a presigned PUT URL for uploading a profile image
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            /** @description Upload URL request */
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["api.AvatarUploadURLRequest"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["api.AvatarUploadURLResponse"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-                /** @description Internal Server Error */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-                /** @description Service Unavailable */
-                503: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/auth/google": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Login with Google
-         * @description Redirects to Google OAuth authorization URL
-         */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Found */
-                302: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description Too Many Requests */
-                429: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-                /** @description Internal Server Error */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/auth/google/callback": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Google OAuth callback
-         * @description Handles Google OAuth callback and creates a session
-         */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Found */
-                302: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-                /** @description Internal Server Error */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/auth/login": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Login with credentials
-         * @description Verifies credentials, creates a session, and sets a cookie
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            /** @description Login request */
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["api.LoginRequest"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["api.AuthStatusResponse"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-                /** @description Internal Server Error */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/auth/logout": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Logout
-         * @description Revokes the current session and clears the session cookie
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["api.LogoutResponse"];
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-                /** @description Internal Server Error */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/auth/me": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get current user
-         * @description Returns the authenticated user from the session cookie
-         */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["api.AuthMeResponse"];
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-                /** @description Internal Server Error */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/auth/password": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Change password
-         * @description Updates password for credentials users and rotates sessions
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            /** @description Change password request */
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["api.ChangePasswordRequest"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["api.AuthStatusResponse"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-                /** @description Too Many Requests */
-                429: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-                /** @description Internal Server Error */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/auth/register": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Register with credentials
-         * @description Creates a user account with email and password, then starts a session
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            /** @description Registration request */
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["api.RegisterRequest"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["api.AuthStatusResponse"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-                /** @description Internal Server Error */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/auth/verify-email": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Verify email
-         * @description Verifies a user's email using a token
-         */
-        get: {
-            parameters: {
-                query: {
-                    /** @description Verification token */
-                    token: string;
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["api.AuthStatusResponse"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-                /** @description Internal Server Error */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/auth/verify-email/resend": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Resend verification email
-         * @description Resends the verification email for the authenticated user
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["api.AuthStatusResponse"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-                /** @description Too Many Requests */
-                429: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-                /** @description Internal Server Error */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/behavior/adaptations": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get adaptation logs
-         * @description Returns recent adaptation logs showing plan difficulty adjustments
-         */
-        get: {
-            parameters: {
-                query?: {
-                    /** @description Number of logs to return */
-                    limit?: number;
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["behavior.AdaptationLogResponse"][];
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-                /** @description Internal Server Error */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/behavior/adherence": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get adherence metrics
-         * @description Returns the current adherence metrics for the authenticated user
-         */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["behavior.AdherenceResponse"];
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-                /** @description Internal Server Error */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/behavior/analytics": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get analytics
-         * @description Returns weekly trends, category performance, and difficulty trajectory
-         */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["behavior.AnalyticsResponse"];
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-                /** @description Internal Server Error */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/behavior/plan/generate": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Generate daily plan
-         * @description Generates a new daily plan based on the user's behavior profile
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["behavior.PlanResponse"];
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-                /** @description Internal Server Error */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/behavior/plan/today": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get today's plan
-         * @description Returns the active daily plan for today with all tasks
-         */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["behavior.PlanResponse"];
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-                /** @description Internal Server Error */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/behavior/plan/today/logs": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get today's execution logs
-         * @description Returns execution logs for today's active plan
-         */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["behavior.ExecutionLogResponse"][];
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-                /** @description Internal Server Error */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/behavior/profile": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get behavior profile
-         * @description Returns the behavior profile for the authenticated user
-         */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["behavior.ProfileResponse"];
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-                /** @description Internal Server Error */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-            };
-        };
-        /**
-         * Update behavior profile
-         * @description Updates the behavior profile for the authenticated user
-         */
-        put: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            /** @description Profile update request */
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["behavior.UpdateProfileInput"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["behavior.ProfileResponse"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-                /** @description Internal Server Error */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-            };
-        };
-        /**
-         * Create behavior profile
-         * @description Creates a behavior profile with goals, constraints, and psychological state
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            /** @description Profile creation request */
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["behavior.CreateProfileInput"];
-                };
-            };
-            responses: {
-                /** @description Created */
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["behavior.ProfileResponse"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-                /** @description Conflict */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-                /** @description Internal Server Error */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/behavior/tasks/{taskID}/log": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Log task execution
-         * @description Records execution status for a specific plan task
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Plan task ID */
-                    taskID: string;
-                };
-                cookie?: never;
-            };
-            /** @description Execution log request */
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["behavior.LogExecutionInput"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["behavior.ExecutionLogResponse"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-                /** @description Internal Server Error */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/health": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Health check
-         * @description Returns the health status of the API
-         */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["api.HealthResponse"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/recipes/generate": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Generate a recipe
-         * @description Uses AI to generate a recipe based on ingredients and dietary restrictions
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            /** @description Recipe generation request */
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["api.RecipeRequest"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["api.Recipe"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-                /** @description Internal Server Error */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
+	'/auth/avatar-url': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * Get avatar URL
+		 * @description Returns a presigned GET URL for the current avatar
+		 */
+		get: {
+			parameters: {
+				query?: never;
+				header?: never;
+				path?: never;
+				cookie?: never;
+			};
+			requestBody?: never;
+			responses: {
+				/** @description OK */
+				200: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': components['schemas']['api.AvatarURLResponse'];
+					};
+				};
+				/** @description Unauthorized */
+				401: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': {
+							[key: string]: string;
+						};
+					};
+				};
+				/** @description Internal Server Error */
+				500: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': {
+							[key: string]: string;
+						};
+					};
+				};
+				/** @description Service Unavailable */
+				503: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': {
+							[key: string]: string;
+						};
+					};
+				};
+			};
+		};
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/auth/avatar/confirm': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * Confirm avatar upload
+		 * @description Validates the uploaded object and stores it on the user
+		 */
+		post: {
+			parameters: {
+				query?: never;
+				header?: never;
+				path?: never;
+				cookie?: never;
+			};
+			/** @description Confirm upload request */
+			requestBody: {
+				content: {
+					'application/json': components['schemas']['api.AvatarConfirmRequest'];
+				};
+			};
+			responses: {
+				/** @description OK */
+				200: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': components['schemas']['api.AvatarURLResponse'];
+					};
+				};
+				/** @description Bad Request */
+				400: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': {
+							[key: string]: string;
+						};
+					};
+				};
+				/** @description Unauthorized */
+				401: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': {
+							[key: string]: string;
+						};
+					};
+				};
+				/** @description Internal Server Error */
+				500: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': {
+							[key: string]: string;
+						};
+					};
+				};
+				/** @description Service Unavailable */
+				503: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': {
+							[key: string]: string;
+						};
+					};
+				};
+			};
+		};
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/auth/avatar/upload-url': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * Get avatar upload URL
+		 * @description Creates a presigned PUT URL for uploading a profile image
+		 */
+		post: {
+			parameters: {
+				query?: never;
+				header?: never;
+				path?: never;
+				cookie?: never;
+			};
+			/** @description Upload URL request */
+			requestBody: {
+				content: {
+					'application/json': components['schemas']['api.AvatarUploadURLRequest'];
+				};
+			};
+			responses: {
+				/** @description OK */
+				200: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': components['schemas']['api.AvatarUploadURLResponse'];
+					};
+				};
+				/** @description Bad Request */
+				400: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': {
+							[key: string]: string;
+						};
+					};
+				};
+				/** @description Unauthorized */
+				401: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': {
+							[key: string]: string;
+						};
+					};
+				};
+				/** @description Internal Server Error */
+				500: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': {
+							[key: string]: string;
+						};
+					};
+				};
+				/** @description Service Unavailable */
+				503: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': {
+							[key: string]: string;
+						};
+					};
+				};
+			};
+		};
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/auth/google': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * Login with Google
+		 * @description Redirects to Google OAuth authorization URL
+		 */
+		get: {
+			parameters: {
+				query?: never;
+				header?: never;
+				path?: never;
+				cookie?: never;
+			};
+			requestBody?: never;
+			responses: {
+				/** @description Found */
+				302: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content?: never;
+				};
+				/** @description Too Many Requests */
+				429: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': {
+							[key: string]: string;
+						};
+					};
+				};
+				/** @description Internal Server Error */
+				500: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': {
+							[key: string]: string;
+						};
+					};
+				};
+			};
+		};
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/auth/google/callback': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * Google OAuth callback
+		 * @description Handles Google OAuth callback and creates a session
+		 */
+		get: {
+			parameters: {
+				query?: never;
+				header?: never;
+				path?: never;
+				cookie?: never;
+			};
+			requestBody?: never;
+			responses: {
+				/** @description Found */
+				302: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content?: never;
+				};
+				/** @description Bad Request */
+				400: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': {
+							[key: string]: string;
+						};
+					};
+				};
+				/** @description Internal Server Error */
+				500: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': {
+							[key: string]: string;
+						};
+					};
+				};
+			};
+		};
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/auth/login': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * Login with credentials
+		 * @description Verifies credentials, creates a session, and sets a cookie
+		 */
+		post: {
+			parameters: {
+				query?: never;
+				header?: never;
+				path?: never;
+				cookie?: never;
+			};
+			/** @description Login request */
+			requestBody: {
+				content: {
+					'application/json': components['schemas']['api.LoginRequest'];
+				};
+			};
+			responses: {
+				/** @description OK */
+				200: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': components['schemas']['api.AuthStatusResponse'];
+					};
+				};
+				/** @description Bad Request */
+				400: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': {
+							[key: string]: string;
+						};
+					};
+				};
+				/** @description Unauthorized */
+				401: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': {
+							[key: string]: string;
+						};
+					};
+				};
+				/** @description Internal Server Error */
+				500: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': {
+							[key: string]: string;
+						};
+					};
+				};
+			};
+		};
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/auth/logout': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * Logout
+		 * @description Revokes the current session and clears the session cookie
+		 */
+		post: {
+			parameters: {
+				query?: never;
+				header?: never;
+				path?: never;
+				cookie?: never;
+			};
+			requestBody?: never;
+			responses: {
+				/** @description OK */
+				200: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': components['schemas']['api.LogoutResponse'];
+					};
+				};
+				/** @description Unauthorized */
+				401: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': {
+							[key: string]: string;
+						};
+					};
+				};
+				/** @description Internal Server Error */
+				500: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': {
+							[key: string]: string;
+						};
+					};
+				};
+			};
+		};
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/auth/me': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * Get current user
+		 * @description Returns the authenticated user from the session cookie
+		 */
+		get: {
+			parameters: {
+				query?: never;
+				header?: never;
+				path?: never;
+				cookie?: never;
+			};
+			requestBody?: never;
+			responses: {
+				/** @description OK */
+				200: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': components['schemas']['api.AuthMeResponse'];
+					};
+				};
+				/** @description Unauthorized */
+				401: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': {
+							[key: string]: string;
+						};
+					};
+				};
+				/** @description Internal Server Error */
+				500: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': {
+							[key: string]: string;
+						};
+					};
+				};
+			};
+		};
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/auth/password': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * Change password
+		 * @description Updates password for credentials users and rotates sessions
+		 */
+		post: {
+			parameters: {
+				query?: never;
+				header?: never;
+				path?: never;
+				cookie?: never;
+			};
+			/** @description Change password request */
+			requestBody: {
+				content: {
+					'application/json': components['schemas']['api.ChangePasswordRequest'];
+				};
+			};
+			responses: {
+				/** @description OK */
+				200: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': components['schemas']['api.AuthStatusResponse'];
+					};
+				};
+				/** @description Bad Request */
+				400: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': {
+							[key: string]: string;
+						};
+					};
+				};
+				/** @description Unauthorized */
+				401: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': {
+							[key: string]: string;
+						};
+					};
+				};
+				/** @description Too Many Requests */
+				429: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': {
+							[key: string]: string;
+						};
+					};
+				};
+				/** @description Internal Server Error */
+				500: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': {
+							[key: string]: string;
+						};
+					};
+				};
+			};
+		};
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/auth/register': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * Register with credentials
+		 * @description Creates a user account with email and password, then starts a session
+		 */
+		post: {
+			parameters: {
+				query?: never;
+				header?: never;
+				path?: never;
+				cookie?: never;
+			};
+			/** @description Registration request */
+			requestBody: {
+				content: {
+					'application/json': components['schemas']['api.RegisterRequest'];
+				};
+			};
+			responses: {
+				/** @description OK */
+				200: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': components['schemas']['api.AuthStatusResponse'];
+					};
+				};
+				/** @description Bad Request */
+				400: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': {
+							[key: string]: string;
+						};
+					};
+				};
+				/** @description Internal Server Error */
+				500: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': {
+							[key: string]: string;
+						};
+					};
+				};
+			};
+		};
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/auth/verify-email': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * Verify email
+		 * @description Verifies a user's email using a token
+		 */
+		get: {
+			parameters: {
+				query: {
+					/** @description Verification token */
+					token: string;
+				};
+				header?: never;
+				path?: never;
+				cookie?: never;
+			};
+			requestBody?: never;
+			responses: {
+				/** @description OK */
+				200: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': components['schemas']['api.AuthStatusResponse'];
+					};
+				};
+				/** @description Bad Request */
+				400: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': {
+							[key: string]: string;
+						};
+					};
+				};
+				/** @description Internal Server Error */
+				500: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': {
+							[key: string]: string;
+						};
+					};
+				};
+			};
+		};
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/auth/verify-email/resend': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * Resend verification email
+		 * @description Resends the verification email for the authenticated user
+		 */
+		post: {
+			parameters: {
+				query?: never;
+				header?: never;
+				path?: never;
+				cookie?: never;
+			};
+			requestBody?: never;
+			responses: {
+				/** @description OK */
+				200: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': components['schemas']['api.AuthStatusResponse'];
+					};
+				};
+				/** @description Bad Request */
+				400: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': {
+							[key: string]: string;
+						};
+					};
+				};
+				/** @description Unauthorized */
+				401: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': {
+							[key: string]: string;
+						};
+					};
+				};
+				/** @description Too Many Requests */
+				429: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': {
+							[key: string]: string;
+						};
+					};
+				};
+				/** @description Internal Server Error */
+				500: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': {
+							[key: string]: string;
+						};
+					};
+				};
+			};
+		};
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/behavior/adaptations': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * Get adaptation logs
+		 * @description Returns recent adaptation logs showing plan difficulty adjustments
+		 */
+		get: {
+			parameters: {
+				query?: {
+					/** @description Number of logs to return */
+					limit?: number;
+				};
+				header?: never;
+				path?: never;
+				cookie?: never;
+			};
+			requestBody?: never;
+			responses: {
+				/** @description OK */
+				200: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': components['schemas']['behavior.AdaptationLogResponse'][];
+					};
+				};
+				/** @description Unauthorized */
+				401: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': {
+							[key: string]: string;
+						};
+					};
+				};
+				/** @description Internal Server Error */
+				500: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': {
+							[key: string]: string;
+						};
+					};
+				};
+			};
+		};
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/behavior/adherence': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * Get adherence metrics
+		 * @description Returns the current adherence metrics for the authenticated user
+		 */
+		get: {
+			parameters: {
+				query?: never;
+				header?: never;
+				path?: never;
+				cookie?: never;
+			};
+			requestBody?: never;
+			responses: {
+				/** @description OK */
+				200: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': components['schemas']['behavior.AdherenceResponse'];
+					};
+				};
+				/** @description Unauthorized */
+				401: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': {
+							[key: string]: string;
+						};
+					};
+				};
+				/** @description Internal Server Error */
+				500: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': {
+							[key: string]: string;
+						};
+					};
+				};
+			};
+		};
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/behavior/analytics': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * Get analytics
+		 * @description Returns weekly trends, category performance, and difficulty trajectory
+		 */
+		get: {
+			parameters: {
+				query?: never;
+				header?: never;
+				path?: never;
+				cookie?: never;
+			};
+			requestBody?: never;
+			responses: {
+				/** @description OK */
+				200: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': components['schemas']['behavior.AnalyticsResponse'];
+					};
+				};
+				/** @description Unauthorized */
+				401: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': {
+							[key: string]: string;
+						};
+					};
+				};
+				/** @description Internal Server Error */
+				500: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': {
+							[key: string]: string;
+						};
+					};
+				};
+			};
+		};
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/behavior/onboarding/chat': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * Onboarding chat
+		 * @description Processes a turn of the AI profiling conversation during onboarding
+		 */
+		post: {
+			parameters: {
+				query?: never;
+				header?: never;
+				path?: never;
+				cookie?: never;
+			};
+			/** @description Chat request with message and history */
+			requestBody: {
+				content: {
+					'application/json': components['schemas']['behavior.OnboardingChatRequest'];
+				};
+			};
+			responses: {
+				/** @description OK */
+				200: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': components['schemas']['behavior.OnboardingChatResponse'];
+					};
+				};
+				/** @description Bad Request */
+				400: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': {
+							[key: string]: string;
+						};
+					};
+				};
+				/** @description Unauthorized */
+				401: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': {
+							[key: string]: string;
+						};
+					};
+				};
+				/** @description Internal Server Error */
+				500: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': {
+							[key: string]: string;
+						};
+					};
+				};
+			};
+		};
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/behavior/plan/generate': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * Generate daily plan
+		 * @description Generates a new daily plan based on the user's behavior profile
+		 */
+		post: {
+			parameters: {
+				query?: never;
+				header?: never;
+				path?: never;
+				cookie?: never;
+			};
+			requestBody?: never;
+			responses: {
+				/** @description OK */
+				200: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': components['schemas']['behavior.PlanResponse'];
+					};
+				};
+				/** @description Unauthorized */
+				401: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': {
+							[key: string]: string;
+						};
+					};
+				};
+				/** @description Internal Server Error */
+				500: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': {
+							[key: string]: string;
+						};
+					};
+				};
+			};
+		};
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/behavior/plan/today': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * Get today's plan
+		 * @description Returns the active daily plan for today with all tasks
+		 */
+		get: {
+			parameters: {
+				query?: never;
+				header?: never;
+				path?: never;
+				cookie?: never;
+			};
+			requestBody?: never;
+			responses: {
+				/** @description OK */
+				200: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': components['schemas']['behavior.PlanResponse'];
+					};
+				};
+				/** @description Unauthorized */
+				401: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': {
+							[key: string]: string;
+						};
+					};
+				};
+				/** @description Not Found */
+				404: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': {
+							[key: string]: string;
+						};
+					};
+				};
+				/** @description Internal Server Error */
+				500: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': {
+							[key: string]: string;
+						};
+					};
+				};
+			};
+		};
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/behavior/plan/today/logs': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * Get today's execution logs
+		 * @description Returns execution logs for today's active plan
+		 */
+		get: {
+			parameters: {
+				query?: never;
+				header?: never;
+				path?: never;
+				cookie?: never;
+			};
+			requestBody?: never;
+			responses: {
+				/** @description OK */
+				200: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': components['schemas']['behavior.ExecutionLogResponse'][];
+					};
+				};
+				/** @description Unauthorized */
+				401: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': {
+							[key: string]: string;
+						};
+					};
+				};
+				/** @description Internal Server Error */
+				500: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': {
+							[key: string]: string;
+						};
+					};
+				};
+			};
+		};
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/behavior/profile': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * Get behavior profile
+		 * @description Returns the behavior profile for the authenticated user
+		 */
+		get: {
+			parameters: {
+				query?: never;
+				header?: never;
+				path?: never;
+				cookie?: never;
+			};
+			requestBody?: never;
+			responses: {
+				/** @description OK */
+				200: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': components['schemas']['behavior.ProfileResponse'];
+					};
+				};
+				/** @description Unauthorized */
+				401: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': {
+							[key: string]: string;
+						};
+					};
+				};
+				/** @description Not Found */
+				404: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': {
+							[key: string]: string;
+						};
+					};
+				};
+				/** @description Internal Server Error */
+				500: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': {
+							[key: string]: string;
+						};
+					};
+				};
+			};
+		};
+		/**
+		 * Update behavior profile
+		 * @description Updates the behavior profile for the authenticated user
+		 */
+		put: {
+			parameters: {
+				query?: never;
+				header?: never;
+				path?: never;
+				cookie?: never;
+			};
+			/** @description Profile update request */
+			requestBody: {
+				content: {
+					'application/json': components['schemas']['behavior.UpdateProfileInput'];
+				};
+			};
+			responses: {
+				/** @description OK */
+				200: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': components['schemas']['behavior.ProfileResponse'];
+					};
+				};
+				/** @description Bad Request */
+				400: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': {
+							[key: string]: string;
+						};
+					};
+				};
+				/** @description Unauthorized */
+				401: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': {
+							[key: string]: string;
+						};
+					};
+				};
+				/** @description Not Found */
+				404: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': {
+							[key: string]: string;
+						};
+					};
+				};
+				/** @description Internal Server Error */
+				500: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': {
+							[key: string]: string;
+						};
+					};
+				};
+			};
+		};
+		/**
+		 * Create behavior profile
+		 * @description Creates a behavior profile with goals, constraints, and psychological state
+		 */
+		post: {
+			parameters: {
+				query?: never;
+				header?: never;
+				path?: never;
+				cookie?: never;
+			};
+			/** @description Profile creation request */
+			requestBody: {
+				content: {
+					'application/json': components['schemas']['behavior.CreateProfileInput'];
+				};
+			};
+			responses: {
+				/** @description Created */
+				201: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': components['schemas']['behavior.ProfileResponse'];
+					};
+				};
+				/** @description Bad Request */
+				400: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': {
+							[key: string]: string;
+						};
+					};
+				};
+				/** @description Unauthorized */
+				401: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': {
+							[key: string]: string;
+						};
+					};
+				};
+				/** @description Conflict */
+				409: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': {
+							[key: string]: string;
+						};
+					};
+				};
+				/** @description Internal Server Error */
+				500: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': {
+							[key: string]: string;
+						};
+					};
+				};
+			};
+		};
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/behavior/tasks/{taskID}/log': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * Log task execution
+		 * @description Records execution status for a specific plan task
+		 */
+		post: {
+			parameters: {
+				query?: never;
+				header?: never;
+				path: {
+					/** @description Plan task ID */
+					taskID: string;
+				};
+				cookie?: never;
+			};
+			/** @description Execution log request */
+			requestBody: {
+				content: {
+					'application/json': components['schemas']['behavior.LogExecutionInput'];
+				};
+			};
+			responses: {
+				/** @description OK */
+				200: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': components['schemas']['behavior.ExecutionLogResponse'];
+					};
+				};
+				/** @description Bad Request */
+				400: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': {
+							[key: string]: string;
+						};
+					};
+				};
+				/** @description Unauthorized */
+				401: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': {
+							[key: string]: string;
+						};
+					};
+				};
+				/** @description Not Found */
+				404: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': {
+							[key: string]: string;
+						};
+					};
+				};
+				/** @description Internal Server Error */
+				500: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': {
+							[key: string]: string;
+						};
+					};
+				};
+			};
+		};
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/health': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * Health check
+		 * @description Returns the health status of the API
+		 */
+		get: {
+			parameters: {
+				query?: never;
+				header?: never;
+				path?: never;
+				cookie?: never;
+			};
+			requestBody?: never;
+			responses: {
+				/** @description OK */
+				200: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': components['schemas']['api.HealthResponse'];
+					};
+				};
+			};
+		};
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/recipes/generate': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * Generate a recipe
+		 * @description Uses AI to generate a recipe based on ingredients and dietary restrictions
+		 */
+		post: {
+			parameters: {
+				query?: never;
+				header?: never;
+				path?: never;
+				cookie?: never;
+			};
+			/** @description Recipe generation request */
+			requestBody: {
+				content: {
+					'application/json': components['schemas']['api.RecipeRequest'];
+				};
+			};
+			responses: {
+				/** @description OK */
+				200: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': components['schemas']['api.Recipe'];
+					};
+				};
+				/** @description Bad Request */
+				400: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': {
+							[key: string]: string;
+						};
+					};
+				};
+				/** @description Internal Server Error */
+				500: {
+					headers: {
+						[name: string]: unknown;
+					};
+					content: {
+						'application/json': {
+							[key: string]: string;
+						};
+					};
+				};
+			};
+		};
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 }
 export type webhooks = Record<string, never>;
 export interface components {
-    schemas: {
-        /** @description Authenticated user response */
-        "api.AuthMeResponse": {
-            email?: string;
-            email_verified?: boolean;
-            id?: string;
-            name?: string;
-            picture?: string;
-            provider?: string;
-        };
-        /** @description Auth status response */
-        "api.AuthStatusResponse": {
-            /** @example ok */
-            status?: string;
-        };
-        "api.AvatarConfirmRequest": {
-            key?: string;
-        };
-        "api.AvatarURLResponse": {
-            expires_at?: string;
-            url?: string;
-        };
-        "api.AvatarUploadURLRequest": {
-            content_type?: string;
-            size?: number;
-        };
-        "api.AvatarUploadURLResponse": {
-            expires_at?: string;
-            headers?: {
-                [key: string]: string[];
-            };
-            key?: string;
-            method?: string;
-            url?: string;
-        };
-        /** @description Password change request */
-        "api.ChangePasswordRequest": {
-            current_password: string;
-            new_password: string;
-        };
-        /** @description Health check response */
-        "api.HealthResponse": {
-            /** @example ok */
-            status: string;
-        };
-        /** @description Login request */
-        "api.LoginRequest": {
-            /** @example user@example.com */
-            email: string;
-            /** @example verysecurepassword */
-            password: string;
-        };
-        /** @description Logout response */
-        "api.LogoutResponse": {
-            /** @example ok */
-            status?: string;
-        };
-        /** @description Generated recipe */
-        "api.Recipe": {
-            /** @example 25 minutes */
-            cookTime: string;
-            /** @example A delicious and healthy grilled chicken recipe */
-            description: string;
-            /**
-             * @example [
-             *       "chicken breast",
-             *       "lemon",
-             *       "herbs"
-             *     ]
-             */
-            ingredients: string[];
-            /**
-             * @example [
-             *       "Marinate chicken",
-             *       "Preheat grill",
-             *       "Grill for 12 minutes"
-             *     ]
-             */
-            instructions: string[];
-            /** @example 15 minutes */
-            prepTime: string;
-            /** @example 4 */
-            servings: number;
-            /**
-             * @example [
-             *       "Let rest for 5 minutes before serving"
-             *     ]
-             */
-            tips?: string[];
-            /** @example Grilled Lemon Herb Chicken */
-            title: string;
-        };
-        /** @description Recipe generation request */
-        "api.RecipeRequest": {
-            /** @example gluten-free */
-            dietaryRestrictions?: string;
-            /** @example chicken */
-            ingredient: string;
-        };
-        /** @description Registration request */
-        "api.RegisterRequest": {
-            /** @example user@example.com */
-            email: string;
-            /** @example Jane Doe */
-            name: string;
-            /** @example verysecurepassword */
-            password: string;
-        };
-        /** @description Adaptation log response */
-        "behavior.AdaptationLogResponse": {
-            adaptation_reason?: string;
-            created_at?: string;
-            difficulty_change?: number;
-            id?: string;
-            new_difficulty?: number;
-            previous_difficulty?: number;
-            trigger_metrics?: Record<string, never>;
-            user_id?: string;
-        };
-        /** @description Adherence metrics response */
-        "behavior.AdherenceResponse": {
-            completed_tasks?: number;
-            completion_rate?: number;
-            difficulty_mismatch?: boolean;
-            id?: string;
-            last_computed_at?: string;
-            streak_count?: number;
-            total_tasks?: number;
-            user_id?: string;
-        };
-        /** @description Analytics response with trends and performance data */
-        "behavior.AnalyticsResponse": {
-            category_performance?: components["schemas"]["behavior.CategoryPerformance"][];
-            difficulty_trajectory?: components["schemas"]["behavior.DifficultyPoint"][];
-            weekly_trends?: components["schemas"]["behavior.WeeklyTrend"][];
-        };
-        /** @description Category performance breakdown */
-        "behavior.CategoryPerformance": {
-            category?: string;
-            completed_tasks?: number;
-            completion_rate?: number;
-            total_tasks?: number;
-        };
-        /** @description Profile creation request */
-        "behavior.CreateProfileInput": {
-            constraints?: Record<string, never>;
-            difficulty_level?: number;
-            goals?: Record<string, never>;
-            psychological_state?: Record<string, never>;
-        };
-        /** @description Difficulty trajectory point */
-        "behavior.DifficultyPoint": {
-            date?: string;
-            difficulty?: number;
-        };
-        /** @description Task execution log response */
-        "behavior.ExecutionLogResponse": {
-            completed?: boolean;
-            completed_at?: string;
-            created_at?: string;
-            id?: string;
-            notes?: string;
-            plan_task_id?: string;
-            user_id?: string;
-        };
-        /** @description Task execution log request */
-        "behavior.LogExecutionInput": {
-            completed?: boolean;
-            notes?: string;
-        };
-        /** @description Daily plan response */
-        "behavior.PlanResponse": {
-            created_at?: string;
-            difficulty_score?: number;
-            id?: string;
-            plan_date?: string;
-            status?: string;
-            tasks?: components["schemas"]["behavior.TaskResponse"][];
-            updated_at?: string;
-            user_id?: string;
-        };
-        /** @description Behavior profile response */
-        "behavior.ProfileResponse": {
-            constraints?: Record<string, never>;
-            created_at?: string;
-            difficulty_level?: number;
-            goals?: Record<string, never>;
-            id?: string;
-            onboarding_completed?: boolean;
-            psychological_state?: Record<string, never>;
-            updated_at?: string;
-            user_id?: string;
-        };
-        /** @description Plan task response */
-        "behavior.TaskResponse": {
-            category?: string;
-            created_at?: string;
-            description?: string;
-            difficulty?: number;
-            id?: string;
-            position?: number;
-            title?: string;
-        };
-        /** @description Profile update request */
-        "behavior.UpdateProfileInput": {
-            constraints?: Record<string, never>;
-            difficulty_level?: number;
-            goals?: Record<string, never>;
-            onboarding_completed?: boolean;
-            psychological_state?: Record<string, never>;
-        };
-        /** @description Weekly completion trend */
-        "behavior.WeeklyTrend": {
-            completed_tasks?: number;
-            completion_rate?: number;
-            plan_count?: number;
-            total_tasks?: number;
-            week_start?: string;
-        };
-    };
-    responses: never;
-    parameters: never;
-    requestBodies: never;
-    headers: never;
-    pathItems: never;
+	schemas: {
+		/** @description Authenticated user response */
+		'api.AuthMeResponse': {
+			email?: string;
+			email_verified?: boolean;
+			id?: string;
+			name?: string;
+			picture?: string;
+			provider?: string;
+		};
+		/** @description Auth status response */
+		'api.AuthStatusResponse': {
+			/** @example ok */
+			status?: string;
+		};
+		'api.AvatarConfirmRequest': {
+			key?: string;
+		};
+		'api.AvatarURLResponse': {
+			expires_at?: string;
+			url?: string;
+		};
+		'api.AvatarUploadURLRequest': {
+			content_type?: string;
+			size?: number;
+		};
+		'api.AvatarUploadURLResponse': {
+			expires_at?: string;
+			headers?: {
+				[key: string]: string[];
+			};
+			key?: string;
+			method?: string;
+			url?: string;
+		};
+		/** @description Password change request */
+		'api.ChangePasswordRequest': {
+			current_password: string;
+			new_password: string;
+		};
+		/** @description Health check response */
+		'api.HealthResponse': {
+			/** @example ok */
+			status: string;
+		};
+		/** @description Login request */
+		'api.LoginRequest': {
+			/** @example user@example.com */
+			email: string;
+			/** @example verysecurepassword */
+			password: string;
+		};
+		/** @description Logout response */
+		'api.LogoutResponse': {
+			/** @example ok */
+			status?: string;
+		};
+		/** @description Generated recipe */
+		'api.Recipe': {
+			/** @example 25 minutes */
+			cookTime: string;
+			/** @example A delicious and healthy grilled chicken recipe */
+			description: string;
+			/**
+			 * @example [
+			 *       "chicken breast",
+			 *       "lemon",
+			 *       "herbs"
+			 *     ]
+			 */
+			ingredients: string[];
+			/**
+			 * @example [
+			 *       "Marinate chicken",
+			 *       "Preheat grill",
+			 *       "Grill for 12 minutes"
+			 *     ]
+			 */
+			instructions: string[];
+			/** @example 15 minutes */
+			prepTime: string;
+			/** @example 4 */
+			servings: number;
+			/**
+			 * @example [
+			 *       "Let rest for 5 minutes before serving"
+			 *     ]
+			 */
+			tips?: string[];
+			/** @example Grilled Lemon Herb Chicken */
+			title: string;
+		};
+		/** @description Recipe generation request */
+		'api.RecipeRequest': {
+			/** @example gluten-free */
+			dietaryRestrictions?: string;
+			/** @example chicken */
+			ingredient: string;
+		};
+		/** @description Registration request */
+		'api.RegisterRequest': {
+			/** @example user@example.com */
+			email: string;
+			/** @example Jane Doe */
+			name: string;
+			/** @example verysecurepassword */
+			password: string;
+		};
+		/** @description Adaptation log response */
+		'behavior.AdaptationLogResponse': {
+			adaptation_reason?: string;
+			created_at?: string;
+			difficulty_change?: number;
+			id?: string;
+			new_difficulty?: number;
+			previous_difficulty?: number;
+			trigger_metrics?: Record<string, never>;
+			user_id?: string;
+		};
+		/** @description Adherence metrics response */
+		'behavior.AdherenceResponse': {
+			completed_tasks?: number;
+			completion_rate?: number;
+			difficulty_mismatch?: boolean;
+			id?: string;
+			last_computed_at?: string;
+			streak_count?: number;
+			total_tasks?: number;
+			user_id?: string;
+		};
+		/** @description Analytics response with trends and performance data */
+		'behavior.AnalyticsResponse': {
+			category_performance?: components['schemas']['behavior.CategoryPerformance'][];
+			difficulty_trajectory?: components['schemas']['behavior.DifficultyPoint'][];
+			weekly_trends?: components['schemas']['behavior.WeeklyTrend'][];
+		};
+		/** @description Category performance breakdown */
+		'behavior.CategoryPerformance': {
+			category?: string;
+			completed_tasks?: number;
+			completion_rate?: number;
+			total_tasks?: number;
+		};
+		/** @description Profile creation request */
+		'behavior.CreateProfileInput': {
+			ai_profile_summary?: Record<string, never>;
+			constraints?: Record<string, never>;
+			delivery_mode?: string;
+			difficulty_level?: number;
+			emotional_state?: string;
+			goals?: Record<string, never>;
+			psychological_state?: Record<string, never>;
+		};
+		/** @description Difficulty trajectory point */
+		'behavior.DifficultyPoint': {
+			date?: string;
+			difficulty?: number;
+		};
+		/** @description Task execution log response */
+		'behavior.ExecutionLogResponse': {
+			completed?: boolean;
+			completed_at?: string;
+			created_at?: string;
+			id?: string;
+			notes?: string;
+			plan_task_id?: string;
+			user_id?: string;
+		};
+		/** @description Task execution log request */
+		'behavior.LogExecutionInput': {
+			completed?: boolean;
+			notes?: string;
+		};
+		'behavior.OnboardingChatMessage': {
+			content?: string;
+			role?: string;
+		};
+		'behavior.OnboardingChatRequest': Record<string, never>;
+		'behavior.OnboardingChatResponse': {
+			ai_message?: string;
+			history?: components['schemas']['behavior.OnboardingChatMessage'][];
+			is_complete?: boolean;
+			recommended_delivery_mode?: string;
+			recommended_emotional_state?: string;
+			summary?: Record<string, never>;
+			turn_number?: number;
+		};
+		/** @description Daily plan response */
+		'behavior.PlanResponse': {
+			created_at?: string;
+			difficulty_score?: number;
+			id?: string;
+			plan_date?: string;
+			status?: string;
+			tasks?: components['schemas']['behavior.TaskResponse'][];
+			updated_at?: string;
+			user_id?: string;
+		};
+		/** @description Behavior profile response */
+		'behavior.ProfileResponse': {
+			ai_profile_summary?: Record<string, never>;
+			constraints?: Record<string, never>;
+			created_at?: string;
+			delivery_mode?: string;
+			difficulty_level?: number;
+			emotional_state?: string;
+			goals?: Record<string, never>;
+			id?: string;
+			onboarding_completed?: boolean;
+			psychological_state?: Record<string, never>;
+			updated_at?: string;
+			user_id?: string;
+		};
+		/** @description Plan task response */
+		'behavior.TaskResponse': {
+			anchor_label?: string;
+			category?: string;
+			created_at?: string;
+			description?: string;
+			difficulty?: number;
+			id?: string;
+			position?: number;
+			suggested_time?: string;
+			task_type?: string;
+			title?: string;
+		};
+		/** @description Profile update request */
+		'behavior.UpdateProfileInput': {
+			ai_profile_summary?: Record<string, never>;
+			constraints?: Record<string, never>;
+			delivery_mode?: string;
+			difficulty_level?: number;
+			emotional_state?: string;
+			goals?: Record<string, never>;
+			onboarding_completed?: boolean;
+			psychological_state?: Record<string, never>;
+		};
+		/** @description Weekly completion trend */
+		'behavior.WeeklyTrend': {
+			completed_tasks?: number;
+			completion_rate?: number;
+			plan_count?: number;
+			total_tasks?: number;
+			week_start?: string;
+		};
+	};
+	responses: never;
+	parameters: never;
+	requestBodies: never;
+	headers: never;
+	pathItems: never;
 }
 export type $defs = Record<string, never>;
 export type operations = Record<string, never>;
+
+// Manual extensions to the generated OpenAPI types.
+type DeepRequired<T> = {
+	[K in keyof T]-?: NonNullable<T[K]> extends (infer U)[]
+		? DeepRequired<U>[]
+		: NonNullable<T[K]> extends object
+			? DeepRequired<NonNullable<T[K]>>
+			: NonNullable<T[K]>;
+};
+
+export type HealthResponse = components['schemas']['api.HealthResponse'];
+export type ProfileResponse = DeepRequired<components['schemas']['behavior.ProfileResponse']>;
+export type TaskResponse = DeepRequired<components['schemas']['behavior.TaskResponse']>;
+export type PlanResponse = Omit<
+	DeepRequired<components['schemas']['behavior.PlanResponse']>,
+	'tasks'
+> & {
+	tasks: TaskResponse[];
+};
+export type ExecutionLogResponse = DeepRequired<
+	components['schemas']['behavior.ExecutionLogResponse']
+>;
+export type AdherenceResponse = DeepRequired<components['schemas']['behavior.AdherenceResponse']>;
+export type AdaptationLogResponse = DeepRequired<
+	components['schemas']['behavior.AdaptationLogResponse']
+>;
+export type AnalyticsResponse = DeepRequired<components['schemas']['behavior.AnalyticsResponse']>;
+
+export type CreateProfileInput = Omit<
+	components['schemas']['behavior.CreateProfileInput'],
+	'goals' | 'constraints' | 'psychological_state' | 'ai_profile_summary'
+> & {
+	goals?: Record<string, unknown>;
+	constraints?: Record<string, unknown>;
+	psychological_state?: Record<string, unknown>;
+	ai_profile_summary?: Record<string, unknown>;
+};
+
+export type UpdateProfileInput = Omit<
+	components['schemas']['behavior.UpdateProfileInput'],
+	'goals' | 'constraints' | 'psychological_state' | 'ai_profile_summary'
+> & {
+	goals?: Record<string, unknown>;
+	constraints?: Record<string, unknown>;
+	psychological_state?: Record<string, unknown>;
+	ai_profile_summary?: Record<string, unknown>;
+};
+
+export type LogExecutionInput = components['schemas']['behavior.LogExecutionInput'];
+
+export type OnboardingChatMessage = {
+	role: 'user' | 'assistant';
+	content: string;
+};
+
+export type OnboardingChatResponse = Omit<
+	DeepRequired<components['schemas']['behavior.OnboardingChatResponse']>,
+	'history' | 'summary'
+> & {
+	history: OnboardingChatMessage[];
+	summary?: Record<string, unknown>;
+};

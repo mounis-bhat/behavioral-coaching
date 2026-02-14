@@ -1,85 +1,17 @@
-import type { components } from './api-types';
-
-// The generated schema marks all response fields as optional, but the API
-// always returns them. DeepRequired makes the full tree non-optional.
-type DeepRequired<T> = {
-	[K in keyof T]-?: NonNullable<T[K]> extends (infer U)[]
-		? DeepRequired<U>[]
-		: NonNullable<T[K]> extends object
-			? DeepRequired<NonNullable<T[K]>>
-			: NonNullable<T[K]>;
-};
-
-// Types derived from auto-generated OpenAPI schema, extended with new fields
-// that may not yet be in the generated api-types.ts.
-export type HealthResponse = components['schemas']['api.HealthResponse'];
-export type ProfileResponse = DeepRequired<components['schemas']['behavior.ProfileResponse']> & {
-	delivery_mode: string;
-	emotional_state: string;
-	ai_profile_summary: Record<string, unknown>;
-};
-export type TaskResponse = DeepRequired<components['schemas']['behavior.TaskResponse']> & {
-	task_type: string;
-	suggested_time: string;
-	anchor_label: string;
-};
-export type PlanResponse = Omit<
-	DeepRequired<components['schemas']['behavior.PlanResponse']>,
-	'tasks'
-> & {
-	tasks: TaskResponse[];
-};
-export type ExecutionLogResponse = DeepRequired<
-	components['schemas']['behavior.ExecutionLogResponse']
->;
-export type AdherenceResponse = DeepRequired<
-	components['schemas']['behavior.AdherenceResponse']
->;
-export type AdaptationLogResponse = DeepRequired<
-	components['schemas']['behavior.AdaptationLogResponse']
->;
-export type AnalyticsResponse = DeepRequired<
-	components['schemas']['behavior.AnalyticsResponse']
->;
-
-// Input types use Record<string, never> for JSON fields in the generated schema,
-// so we define them manually to accept actual data.
-type CreateProfileInput = {
-	goals?: Record<string, unknown>;
-	constraints?: Record<string, unknown>;
-	psychological_state?: Record<string, unknown>;
-	difficulty_level?: number;
-	delivery_mode?: string;
-	emotional_state?: string;
-	ai_profile_summary?: Record<string, unknown>;
-};
-type UpdateProfileInput = {
-	goals?: Record<string, unknown>;
-	constraints?: Record<string, unknown>;
-	psychological_state?: Record<string, unknown>;
-	difficulty_level?: number;
-	onboarding_completed?: boolean;
-	delivery_mode?: string;
-	emotional_state?: string;
-	ai_profile_summary?: Record<string, unknown>;
-};
-type LogExecutionInput = components['schemas']['behavior.LogExecutionInput'];
-
-// Onboarding chat types
-export type OnboardingChatMessage = {
-	role: 'user' | 'assistant';
-	content: string;
-};
-
-export type OnboardingChatResponse = {
-	ai_message: string;
-	history: OnboardingChatMessage[];
-	turn_number: number;
-	is_complete: boolean;
-	summary?: Record<string, unknown>;
-	recommended_delivery_mode?: string;
-	recommended_emotional_state?: string;
-};
+import type {
+	AdherenceResponse,
+	AdaptationLogResponse,
+	AnalyticsResponse,
+	CreateProfileInput,
+	ExecutionLogResponse,
+	HealthResponse,
+	LogExecutionInput,
+	OnboardingChatMessage,
+	OnboardingChatResponse,
+	PlanResponse,
+	ProfileResponse,
+	UpdateProfileInput
+} from './api-types';
 
 // Type-safe API client
 const BASE_URL = '/api';

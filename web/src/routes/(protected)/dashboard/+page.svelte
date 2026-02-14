@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 	import { onMount } from 'svelte';
 	import { user } from '$lib/stores/auth';
+	import { SvelteSet } from 'svelte/reactivity';
 	import {
 		fetchProfile,
 		fetchTodaysPlan,
@@ -9,13 +11,15 @@
 		fetchAdherence,
 		fetchAdaptations,
 		generatePlan,
-		logExecution,
-		type ProfileResponse,
-		type PlanResponse,
-		type TaskResponse,
-		type AdherenceResponse,
-		type AdaptationLogResponse
+		logExecution
 	} from '$lib/api';
+	import type {
+		AdaptationLogResponse,
+		AdherenceResponse,
+		PlanResponse,
+		ProfileResponse,
+		TaskResponse
+	} from '$lib/api-types';
 
 	let pageLoading = $state(true);
 	let error = $state<string | null>(null);
@@ -24,7 +28,7 @@
 	let plan = $state<PlanResponse | null>(null);
 	let adherence = $state<AdherenceResponse | null>(null);
 	let adaptations = $state<AdaptationLogResponse[]>([]);
-	let completedTasks = $state<Set<string>>(new Set());
+	const completedTasks = new SvelteSet<string>();
 
 	let generating = $state(false);
 	let togglingTask = $state<string | null>(null);
@@ -59,7 +63,7 @@
 			profileResult.error === 'not_found' ||
 			(profileResult.data && !profileResult.data.onboarding_completed)
 		) {
-			await goto('/onboarding');
+			await goto(resolve('/onboarding'));
 			return;
 		}
 		if (profileResult.error) {
@@ -84,10 +88,13 @@
 		if (planRes.data) plan = planRes.data;
 		else plan = null;
 
+		completedTasks.clear();
 		if (logsRes.data) {
-			completedTasks = new Set(
-				logsRes.data.filter((l) => l.completed).map((l) => l.plan_task_id)
-			);
+			for (const log of logsRes.data) {
+				if (log.completed) {
+					completedTasks.add(log.plan_task_id);
+				}
+			}
 		}
 
 		if (adhRes.data) adherence = adhRes.data;
@@ -115,10 +122,8 @@
 		const wasCompleted = completedTasks.has(taskId);
 		try {
 			// Optimistic update
-			const next = new Set(completedTasks);
-			if (wasCompleted) next.delete(taskId);
-			else next.add(taskId);
-			completedTasks = next;
+			if (wasCompleted) completedTasks.delete(taskId);
+			else completedTasks.add(taskId);
 
 			const result = await logExecution(taskId, { completed: !wasCompleted });
 			if (result.error) throw new Error(result.error);
@@ -129,10 +134,8 @@
 			if (adaptRes.data) adaptations = adaptRes.data;
 		} catch (e) {
 			// Revert optimistic update
-			const reverted = new Set(completedTasks);
-			if (wasCompleted) reverted.add(taskId);
-			else reverted.delete(taskId);
-			completedTasks = reverted;
+			if (wasCompleted) completedTasks.add(taskId);
+			else completedTasks.delete(taskId);
 			error = e instanceof Error ? e.message : 'Failed to update task';
 		} finally {
 			togglingTask = null;
@@ -145,7 +148,7 @@
 			const res = await fetch('/api/auth/logout', { method: 'POST' });
 			if (!res.ok) throw new Error('Logout failed');
 			user.set(null);
-			await goto('/login');
+			await goto(resolve('/login'));
 		} catch (e) {
 			error = e instanceof Error ? e.message : 'Logout failed';
 		} finally {
@@ -226,8 +229,8 @@
 				class="mb-4 flex items-start justify-between rounded-lg border border-blue-200 bg-blue-50 p-4"
 			>
 				<p class="text-sm text-blue-800">
-					We've adjusted your plan to help you get back on track. Your difficulty has been lowered
-					— focus on building momentum.
+					We've adjusted your plan to help you get back on track. Your difficulty has been lowered —
+					focus on building momentum.
 				</p>
 				<button
 					type="button"
@@ -269,7 +272,7 @@
 						Your three grounding points for the day. These are your foundation.
 					</p>
 					<div class="mb-6 space-y-2">
-						{#each anchorTasks as task}
+						{#each anchorTasks as task (task.id)}
 							<div class="relative">
 								{#if task.anchor_label && anchorLabels[task.anchor_label]}
 									<span
@@ -286,11 +289,9 @@
 
 				{#if regularTasks.length > 0}
 					<h2 class="mb-3 text-lg font-semibold">Tiny Tasks</h2>
-					<p class="mb-3 text-sm text-gray-500">
-						Small, gentle actions. Do what feels manageable.
-					</p>
+					<p class="mb-3 text-sm text-gray-500">Small, gentle actions. Do what feels manageable.</p>
 					<div class="space-y-2">
-						{#each regularTasks as task}
+						{#each regularTasks as task (task.id)}
 							{@render taskItem(task)}
 						{/each}
 					</div>
@@ -300,7 +301,7 @@
 			<!-- Flexible List or Strict Schedule: standard task list -->
 			<section class="mb-8">
 				<div class="space-y-2">
-					{#each plan.tasks as task}
+					{#each plan.tasks as task (task.id)}
 						{@render taskItem(task)}
 					{/each}
 				</div>
@@ -339,8 +340,7 @@
 						<div
 							class="mt-3 rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800"
 						>
-							Your completion rate is low for the current difficulty. The plan may be adjusted
-							soon.
+							Your completion rate is low for the current difficulty. The plan may be adjusted soon.
 						</div>
 					{/if}
 				</section>
@@ -350,17 +350,15 @@
 				<section class="mb-8">
 					<h2 class="mb-3 text-lg font-semibold">Plan adjustments</h2>
 					<div class="space-y-2">
-						{#each adaptations as log}
+						{#each adaptations as log (log.id)}
 							<div class="rounded-lg border p-3">
 								<p class="text-sm">{log.adaptation_reason}</p>
 								<p class="mt-1 text-xs text-gray-500">
 									Difficulty: {log.previous_difficulty}
-									{'\u2192'}
+									→
 									{log.new_difficulty}
 									<span
-										class="ml-1 {log.difficulty_change > 0
-											? 'text-red-600'
-											: 'text-green-600'}"
+										class="ml-1 {log.difficulty_change > 0 ? 'text-red-600' : 'text-green-600'}"
 									>
 										({log.difficulty_change > 0 ? '+' : ''}{log.difficulty_change})
 									</span>
@@ -374,8 +372,8 @@
 
 		<div class="mt-8 flex items-center justify-between border-t pt-6">
 			<div class="flex gap-4">
-				<a href="/insights" class="text-sm underline">Insights</a>
-				<a href="/settings" class="text-sm underline">Settings</a>
+				<a href={resolve('/insights')} class="text-sm underline">Insights</a>
+				<a href={resolve('/settings')} class="text-sm underline">Settings</a>
 			</div>
 			<button
 				type="button"

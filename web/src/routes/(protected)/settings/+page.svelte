@@ -20,21 +20,18 @@
 	let selectedFile = $state<File | null>(null);
 	let previewUrl = $state<string | null>(null);
 
-	$effect(() => {
-		if (!selectedFile) {
-			previewUrl = null;
-			return;
+	function updatePreviewUrl(file: File | null) {
+		if (previewUrl) {
+			URL.revokeObjectURL(previewUrl);
 		}
-		const url = URL.createObjectURL(selectedFile);
-		previewUrl = url;
-		return () => {
-			URL.revokeObjectURL(url);
-		};
-	});
+		previewUrl = file ? URL.createObjectURL(file) : null;
+	}
 
 	function handleFileChange(event: Event) {
 		const input = event.currentTarget as HTMLInputElement;
-		selectedFile = input.files?.[0] ?? null;
+		const file = input.files?.[0] ?? null;
+		selectedFile = file;
+		updatePreviewUrl(file);
 		avatarError = null;
 		avatarSuccess = null;
 	}
@@ -109,11 +106,12 @@
 			if (current) {
 				user.set({
 					...current,
-					picture: confirmed.url ?? current.picture ?? null
+					picture: confirmed.url ?? current.picture ?? undefined
 				});
 			}
 
 			selectedFile = null;
+			updatePreviewUrl(null);
 			avatarSuccess = 'Profile image updated.';
 		} catch (e) {
 			avatarError = e instanceof Error ? e.message : 'Unable to upload image';
@@ -164,16 +162,20 @@
 		<div class="flex items-center gap-4">
 			{#if previewUrl}
 				<img src={previewUrl} alt="Avatar preview" class="h-16 w-16 rounded-full object-cover" />
-		{:else if $user?.picture}
+			{:else if $user?.picture}
 				<img src={$user.picture} alt={$user.name} class="h-16 w-16 rounded-full object-cover" />
 			{:else}
-				<div class="flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 text-sm font-semibold text-gray-500">
+				<div
+					class="flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 text-sm font-semibold text-gray-500"
+				>
 					{$user?.name?.[0] ?? '?'}
 				</div>
 			{/if}
 			<div>
 				<p class="text-sm text-gray-600">JPG, PNG, or WebP up to 5MB.</p>
-				<label class="mt-2 inline-flex cursor-pointer items-center gap-2 text-sm font-medium text-black">
+				<label
+					class="mt-2 inline-flex cursor-pointer items-center gap-2 text-sm font-medium text-black"
+				>
 					<input
 						type="file"
 						accept="image/jpeg,image/png,image/webp"
