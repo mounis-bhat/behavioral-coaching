@@ -5,6 +5,7 @@
 	import { fly } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
 	import { user } from '$lib/stores/auth';
+	import { get } from 'svelte/store';
 	import { SvelteSet } from 'svelte/reactivity';
 	import {
 		fetchProfile,
@@ -40,6 +41,16 @@
 	let togglingTask = $state<string | null>(null);
 	let logoutLoading = $state(false);
 	let relapseNoticeDismissed = $state(false);
+
+	let currentUser = $state(get(user));
+
+	let firstName = $derived(currentUser?.name?.split(' ')[0] ?? '');
+	let greeting = $derived.by(() => {
+		const h = new Date().getHours();
+		if (h < 12) return 'Good morning';
+		if (h < 17) return 'Good afternoon';
+		return 'Good evening';
+	});
 
 	let deliveryMode = $derived(profile?.delivery_mode ?? 'flexible_list');
 
@@ -88,26 +99,32 @@
 		productivity: 'bg-yellow-400/10 text-yellow-300 ring-yellow-400/20'
 	};
 
-	onMount(async () => {
-		const profileResult = await fetchProfile();
-		if (
-			profileResult.error === 'not_found' ||
-			(profileResult.data && !profileResult.data.onboarding_completed)
-		) {
-			await goto(resolve('/onboarding'));
-			return;
-		}
-		if (profileResult.error) {
-			error = profileResult.error;
+	onMount(() => {
+		const unsub = user.subscribe((u) => (currentUser = u));
+
+		(async () => {
+			const profileResult = await fetchProfile();
+			if (
+				profileResult.error === 'not_found' ||
+				(profileResult.data && !profileResult.data.onboarding_completed)
+			) {
+				await goto(resolve('/onboarding'));
+				return;
+			}
+			if (profileResult.error) {
+				error = profileResult.error;
+				pageLoading = false;
+				visible = true;
+				return;
+			}
+
+			profile = profileResult.data;
+			await loadData();
 			pageLoading = false;
 			visible = true;
-			return;
-		}
+		})();
 
-		profile = profileResult.data;
-		await loadData();
-		pageLoading = false;
-		visible = true;
+		return unsub;
 	});
 
 	async function loadData() {
@@ -211,9 +228,9 @@
 {#snippet taskItem(task: TaskResponse)}
 	{@const done = completedTasks.has(task.id)}
 	<div
-		class="flex items-start gap-3 rounded-xl border border-white/10 p-4 transition {done
-			? 'bg-white/[0.02]'
-			: 'bg-white/5'}"
+		class="flex items-start gap-3 rounded-xl border p-4 transition {done
+			? 'border-white/5 bg-white/[0.02]'
+			: 'border-white/10 bg-white/[0.04]'}"
 	>
 		<button
 			type="button"
@@ -251,7 +268,7 @@
 					</span>
 				{/if}
 			</div>
-			<p class="mt-0.5 text-xs text-indigo-100/70">{task.description}</p>
+			<p class="mt-0.5 text-xs text-indigo-100/80">{task.description}</p>
 			<span
 				class="mt-1.5 inline-block rounded-full px-2 py-0.5 text-xs font-medium ring-1 {categoryColors[
 					task.category
@@ -287,33 +304,55 @@
 		</div>
 	{:else if visible}
 		<!-- Header -->
-		<header class="border-b border-white/[0.06] py-5">
+		<header class="border-b border-white/[0.06] bg-white/[0.02] py-5">
 			<div
 				in:fly={{ y: -10, duration: 500, easing: cubicOut }}
-				class="mx-auto flex max-w-5xl items-center justify-between"
+				class="mx-auto flex max-w-5xl items-center justify-between px-6"
 			>
-				<div>
-					<h1 class="text-xl font-bold text-white">Dashboard</h1>
-					<p class="mt-0.5 text-sm text-indigo-200/50">
-						{new Date().toLocaleDateString('en-US', {
-							weekday: 'long',
-							month: 'long',
-							day: 'numeric'
-						})}
-					</p>
+				<div class="flex items-center gap-4">
+					{#if currentUser?.picture}
+						<img
+							src={currentUser.picture}
+							alt=""
+							class="h-10 w-10 rounded-full ring-2 ring-indigo-400/30"
+							referrerpolicy="no-referrer"
+						/>
+					{:else}
+						<div
+							class="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-500/20 text-sm font-semibold text-indigo-300 ring-2 ring-indigo-400/30"
+						>
+							{firstName ? firstName[0].toUpperCase() : '?'}
+						</div>
+					{/if}
+					<div>
+						<h1 class="text-lg font-semibold text-white">
+							{greeting}{firstName ? `, ${firstName}` : ''}
+						</h1>
+						<p class="text-sm text-indigo-200/50">
+							{new Date().toLocaleDateString('en-US', {
+								weekday: 'long',
+								month: 'long',
+								day: 'numeric'
+							})}
+						</p>
+					</div>
 				</div>
-				<div class="flex items-center gap-3">
+				<div class="flex items-center gap-2">
 					<a
 						href={resolve('/settings')}
-						class="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-indigo-200/70 transition hover:bg-white/10 hover:text-white"
+						aria-label="Settings"
+						class="rounded-lg px-3 py-1.5 text-sm text-indigo-200/60 transition hover:bg-white/10 hover:text-white"
 					>
-						Settings
+						<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+							<path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 010 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 010-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28z" />
+							<path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+						</svg>
 					</a>
 					<button
 						type="button"
 						onclick={handleLogout}
 						disabled={logoutLoading}
-						class="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-indigo-200/70 transition hover:bg-white/10 hover:text-white disabled:opacity-50"
+						class="rounded-lg px-3 py-1.5 text-sm text-indigo-200/60 transition hover:bg-white/10 hover:text-white disabled:opacity-50"
 					>
 						{logoutLoading ? 'Signing out...' : 'Sign out'}
 					</button>
@@ -321,7 +360,7 @@
 			</div>
 		</header>
 
-		<main class="mx-auto max-w-5xl py-8">
+		<main class="mx-auto max-w-5xl px-6 py-8">
 			{#if error}
 				<div
 					in:fly={{ y: -5, duration: 300 }}
@@ -365,41 +404,41 @@
 					in:fly={{ y: 15, duration: 500, delay: 50, easing: cubicOut }}
 					class="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-4"
 				>
-					<div class="rounded-xl border border-white/10 bg-white/5 p-4">
-						<p class="text-xs font-medium text-indigo-200/50">Completion</p>
+					<div class="rounded-xl border border-emerald-400/15 bg-emerald-400/[0.06] p-4">
+						<p class="text-xs font-medium text-emerald-300/70">Completion</p>
 						<p class="mt-1 text-2xl font-bold text-white">{completionPct}%</p>
-						<div class="mt-2 h-1 overflow-hidden rounded-full bg-white/10">
+						<div class="mt-2 h-1 overflow-hidden rounded-full bg-emerald-400/15">
 							<div
-								class="h-full rounded-full bg-indigo-400 transition-all duration-500"
+								class="h-full rounded-full bg-emerald-400 transition-all duration-500"
 								style="width: {completionPct}%"
 							></div>
 						</div>
 					</div>
-					<div class="rounded-xl border border-white/10 bg-white/5 p-4">
-						<p class="text-xs font-medium text-indigo-200/50">Streak</p>
+					<div class="rounded-xl border border-amber-400/15 bg-amber-400/[0.06] p-4">
+						<p class="text-xs font-medium text-amber-300/70">Streak</p>
 						<p class="mt-1 text-2xl font-bold text-white">
 							{adherence.streak_count}
-							<span class="text-sm font-normal text-indigo-200/50">
+							<span class="text-sm font-normal text-amber-200/50">
 								day{adherence.streak_count !== 1 ? 's' : ''}
 							</span>
 						</p>
 					</div>
-					<div class="rounded-xl border border-white/10 bg-white/5 p-4">
-						<p class="text-xs font-medium text-indigo-200/50">Tasks done</p>
+					<div class="rounded-xl border border-sky-400/15 bg-sky-400/[0.06] p-4">
+						<p class="text-xs font-medium text-sky-300/70">Tasks done</p>
 						<p class="mt-1 text-2xl font-bold text-white">
-							{adherence.completed_tasks}<span class="text-sm font-normal text-indigo-200/50"
+							{adherence.completed_tasks}<span class="text-sm font-normal text-sky-200/50"
 								>/{adherence.total_tasks}</span
 							>
 						</p>
 					</div>
-					<div class="rounded-xl border border-white/10 bg-white/5 p-4">
-						<p class="text-xs font-medium text-indigo-200/50">Difficulty</p>
+					<div class="rounded-xl border border-violet-400/15 bg-violet-400/[0.06] p-4">
+						<p class="text-xs font-medium text-violet-300/70">Difficulty</p>
 						<p class="mt-1 text-2xl font-bold text-white">
-							{plan.difficulty_score}<span class="text-sm font-normal text-indigo-200/50">/10</span>
+							{plan.difficulty_score}<span class="text-sm font-normal text-violet-200/50">/10</span>
 						</p>
-						<div class="mt-2 h-1 overflow-hidden rounded-full bg-white/10">
+						<div class="mt-2 h-1 overflow-hidden rounded-full bg-violet-400/15">
 							<div
-								class="h-full rounded-full bg-amber-400 transition-all duration-500"
+								class="h-full rounded-full bg-violet-400 transition-all duration-500"
 								style="width: {plan.difficulty_score * 10}%"
 							></div>
 						</div>
@@ -509,7 +548,7 @@
 								<h2 class="mb-3 text-lg font-semibold text-white">Plan adjustments</h2>
 								<div class="space-y-2">
 									{#each adaptations as log (log.id)}
-										<div class="rounded-xl border border-white/10 bg-white/5 p-4">
+										<div class="rounded-xl border border-white/10 bg-white/[0.04] p-4">
 											<p class="text-sm text-indigo-200/70">{log.adaptation_reason}</p>
 											<p class="mt-1.5 text-xs text-indigo-200/40">
 												Difficulty: {log.previous_difficulty} → {log.new_difficulty}
@@ -535,7 +574,7 @@
 						{#if analytics}
 							<!-- Weekly Trends -->
 							{#if analytics.weekly_trends.length > 0}
-								<div class="rounded-xl border border-white/10 bg-white/5 p-5">
+								<div class="rounded-xl border border-indigo-400/10 bg-indigo-400/[0.04] p-5">
 									<h3 class="mb-4 text-sm font-semibold text-white">Weekly Trends</h3>
 									<div class="space-y-3">
 										{#each analytics.weekly_trends.slice(-4) as week (week.week_start)}
@@ -564,7 +603,7 @@
 
 							<!-- Category Breakdown -->
 							{#if analytics.category_performance.length > 0}
-								<div class="mt-6 rounded-xl border border-white/10 bg-white/5 p-5">
+								<div class="mt-6 rounded-xl border border-indigo-400/10 bg-indigo-400/[0.04] p-5">
 									<h3 class="mb-4 text-sm font-semibold text-white">Categories</h3>
 									<div class="space-y-3">
 										{#each analytics.category_performance as cat (cat.category)}
@@ -597,7 +636,7 @@
 
 							<!-- Difficulty Trajectory -->
 							{#if analytics.difficulty_trajectory.length > 1}
-								<div class="mt-6 rounded-xl border border-white/10 bg-white/5 p-5">
+								<div class="mt-6 rounded-xl border border-indigo-400/10 bg-indigo-400/[0.04] p-5">
 									<h3 class="mb-4 text-sm font-semibold text-white">Difficulty Over Time</h3>
 									<div class="flex items-end gap-px" style="height: 80px;">
 										{#each analytics.difficulty_trajectory.slice(-14) as point (point.date)}
