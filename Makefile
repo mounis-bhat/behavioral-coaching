@@ -99,7 +99,7 @@ sqlc:
 
 # Code generation
 swag:
-	swag init -g main.go -o docs -d ./cmd/server,./internal/api,./internal/app/behavior,./internal/app/recipes,./internal/config,./internal/domain,./internal/storage
+	swag init -g main.go -o docs -d ./cmd/server,./internal/api,./internal/app/behavior,./internal/config,./internal/domain,./internal/storage
 
 types: swag
 	cd web && bun run generate:api-types
