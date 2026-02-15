@@ -24,6 +24,9 @@
 	let avatarUploading = $state(false);
 	let selectedFile = $state<File | null>(null);
 	let previewUrl = $state<string | null>(null);
+	let verifyLoading = $state(false);
+	let verifyError = $state<string | null>(null);
+	let verifySuccess = $state<string | null>(null);
 
 	onMount(() => {
 		visible = true;
@@ -126,6 +129,24 @@
 			avatarError = e instanceof Error ? e.message : 'Unable to upload image';
 		} finally {
 			avatarUploading = false;
+		}
+	}
+
+	async function handleResendVerification() {
+		verifyError = null;
+		verifySuccess = null;
+		verifyLoading = true;
+		try {
+			const res = await fetch('/api/auth/verify-email/resend', { method: 'POST' });
+			if (!res.ok) {
+				const payload = (await res.json()) as { error?: string };
+				throw new Error(payload.error ?? 'Unable to send verification email');
+			}
+			verifySuccess = 'Verification email sent. Check your inbox.';
+		} catch (e) {
+			verifyError = e instanceof Error ? e.message : 'Unable to send verification email';
+		} finally {
+			verifyLoading = false;
 		}
 	}
 
@@ -257,9 +278,70 @@
 				</button>
 			</section>
 
+			<!-- Account -->
+			<section
+				in:fly={{ y: 20, duration: 600, delay: 150, easing: cubicOut }}
+				class="mb-6 rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm"
+			>
+				<h2 class="mb-4 text-sm font-semibold text-white">Account</h2>
+				<div class="space-y-3">
+					<div class="flex items-center justify-between">
+						<div>
+							<p class="text-xs font-medium text-indigo-200/50">Email</p>
+							<p class="mt-0.5 text-sm text-white">{$user?.email ?? '—'}</p>
+						</div>
+						{#if $user?.email_verified}
+							<span class="inline-flex items-center gap-1 rounded-full bg-emerald-400/10 px-2.5 py-1 text-xs font-medium text-emerald-300 ring-1 ring-emerald-400/20">
+								<svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+									<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+								</svg>
+								Verified
+							</span>
+						{:else}
+							<span class="inline-flex items-center gap-1 rounded-full bg-amber-400/10 px-2.5 py-1 text-xs font-medium text-amber-300 ring-1 ring-amber-400/20">
+								Not verified
+							</span>
+						{/if}
+					</div>
+					{#if $user?.provider}
+						<div>
+							<p class="text-xs font-medium text-indigo-200/50">Sign-in method</p>
+							<p class="mt-0.5 text-sm capitalize text-white">{$user.provider}</p>
+						</div>
+					{/if}
+				</div>
+
+				{#if !$user?.email_verified}
+					{#if verifyError}
+						<div
+							in:fly={{ y: -5, duration: 300 }}
+							class="mt-4 rounded-lg bg-red-500/10 p-3 text-sm text-red-300 ring-1 ring-red-500/20"
+						>
+							{verifyError}
+						</div>
+					{/if}
+					{#if verifySuccess}
+						<div
+							in:fly={{ y: -5, duration: 300 }}
+							class="mt-4 rounded-lg bg-green-500/10 p-3 text-sm text-green-300 ring-1 ring-green-500/20"
+						>
+							{verifySuccess}
+						</div>
+					{/if}
+					<button
+						type="button"
+						disabled={verifyLoading}
+						onclick={handleResendVerification}
+						class="mt-4 rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-indigo-200/70 transition hover:bg-white/10 hover:text-white disabled:opacity-50"
+					>
+						{verifyLoading ? 'Sending...' : 'Send verification email'}
+					</button>
+				{/if}
+			</section>
+
 			<!-- Change Password -->
 			<section
-				in:fly={{ y: 20, duration: 600, delay: 200, easing: cubicOut }}
+				in:fly={{ y: 20, duration: 600, delay: 250, easing: cubicOut }}
 				class="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm"
 			>
 				<h2 class="mb-4 text-sm font-semibold text-white">Change password</h2>

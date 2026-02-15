@@ -124,8 +124,9 @@
 
 				<button
 					onclick={handleGoogle}
-					class="w-full rounded-lg border border-white/10 bg-white/5 py-2.5 text-sm font-medium text-indigo-200 transition hover:bg-white/10"
+					class="flex w-full items-center justify-center gap-2.5 rounded-lg border border-white/10 bg-white/5 py-2.5 text-sm font-medium text-indigo-200 transition hover:bg-white/10"
 				>
+					<img src="/google.svg" alt="" class="h-4 w-4" />
 					Continue with Google
 				</button>
 			</div>
