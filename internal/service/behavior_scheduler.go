@@ -73,123 +73,98 @@ func (s *BehaviorSchedulerService) SendDailyReminders(ctx context.Context) (int,
 	return sent, nil
 }
 
-// DetectAndHandleRelapses finds users with declining adherence or inactivity,
-// reduces their difficulty, creates adaptation logs, and sends recovery emails.
+// DetectAndHandleRelapses finds users with declining adherence or inactivity and sends
+// recovery emails. For relapsing users (low completion rate), only emails are sent —
+// difficulty adjustment is handled by RunEndOfDayAdaptation via the AI advisor.
+// For inactive users (3+ days no plan), a blind -1.0 difficulty reduction is applied
+// since they have no today's adherence data for the AI to evaluate.
 func (s *BehaviorSchedulerService) DetectAndHandleRelapses(ctx context.Context) (int, error) {
 	if s == nil || s.queries == nil {
 		return 0, errors.New("behavior scheduler not initialized")
 	}
 
-	// Collect relapsing users (low completion rate)
+	// Collect relapsing users (low completion rate) — email only, AI handles difficulty
 	relapsing, err := s.queries.GetRelapsingUsers(ctx)
 	if err != nil {
 		return 0, fmt.Errorf("get relapsing users: %w", err)
 	}
 
-	// Collect inactive users (no plans in 3+ days)
+	// Collect inactive users (no plans in 3+ days) — blind reduction + email
 	inactive, err := s.queries.GetInactiveUsers(ctx)
 	if err != nil {
 		return 0, fmt.Errorf("get inactive users: %w", err)
 	}
 
-	// Deduplicate by user ID
 	seen := make(map[[16]byte]bool)
-	type relapseTarget struct {
-		id         pgtype.UUID
-		email      string
-		name       string
-		reason     string
-		difficulty float64
-	}
-	var targets []relapseTarget
+	var handled int
 
+	// Relapsing users: send recovery email only (AI advisor handles difficulty)
 	for _, u := range relapsing {
 		if seen[u.ID.Bytes] {
 			continue
 		}
 		seen[u.ID.Bytes] = true
-		rate := numericToFloat(u.CompletionRate)
-		targets = append(targets, relapseTarget{
-			id:         u.ID,
-			email:      u.Email,
-			name:       u.Name,
-			reason:     fmt.Sprintf("Automatic relapse recovery: completion rate dropped to %.0f%%", rate*100),
-			difficulty: numericToFloat(u.DifficultyLevel),
-		})
+
+		s.sendRelapseEmail(ctx, u.Email, u.Name)
+		if err := s.queries.UpdateProfileNotifiedAt(ctx, u.ID); err != nil {
+			log.Printf("behavior scheduler: failed to update notified_at: %v", err)
+		}
+		handled++
 	}
 
+	// Inactive users: blind -1.0 reduction + email (no today's adherence for AI)
 	for _, u := range inactive {
 		if seen[u.ID.Bytes] {
 			continue
 		}
 		seen[u.ID.Bytes] = true
-		// Need to get their current difficulty
+
 		profile, err := s.queries.GetBehaviorProfileByUserID(ctx, u.ID)
 		if err != nil {
 			log.Printf("behavior scheduler: failed to get profile for inactive user %s: %v", u.Email, err)
 			continue
 		}
-		targets = append(targets, relapseTarget{
-			id:         u.ID,
-			email:      u.Email,
-			name:       u.Name,
-			reason:     "Automatic relapse recovery: no activity for 3+ days",
-			difficulty: numericToFloat(profile.DifficultyLevel),
-		})
-	}
 
-	var handled int
-	for _, t := range targets {
-		newDifficulty := t.difficulty - 1.0
+		currentDifficulty := numericToFloat(profile.DifficultyLevel)
+		newDifficulty := currentDifficulty - 1.0
 		if newDifficulty < 1.0 {
 			newDifficulty = 1.0
 		}
-		if newDifficulty == t.difficulty {
-			// Already at minimum, just notify
-			s.sendRelapseEmail(ctx, t.email, t.name)
-			if err := s.queries.UpdateProfileNotifiedAt(ctx, t.id); err != nil {
-				log.Printf("behavior scheduler: failed to update notified_at: %v", err)
+
+		if newDifficulty != currentDifficulty {
+			difficultyChange := newDifficulty - currentDifficulty
+
+			_, err := s.queries.UpdateBehaviorProfile(ctx, db.UpdateBehaviorProfileParams{
+				UserID:          u.ID,
+				DifficultyLevel: numericFromFloat(newDifficulty),
+			})
+			if err != nil {
+				log.Printf("behavior scheduler: failed to update difficulty for %s: %v", u.Email, err)
+				continue
 			}
-			handled++
-			continue
+
+			triggerMetrics, _ := json.Marshal(map[string]any{
+				"source":              "inactive_relapse_detection",
+				"previous_difficulty": currentDifficulty,
+				"new_difficulty":      newDifficulty,
+			})
+			_, err = s.queries.CreateAdaptationLog(ctx, db.CreateAdaptationLogParams{
+				UserID:             u.ID,
+				AdaptationReason:   "Automatic relapse recovery: no activity for 3+ days",
+				DifficultyChange:   numericFromFloat(difficultyChange),
+				PreviousDifficulty: numericFromFloat(currentDifficulty),
+				NewDifficulty:      numericFromFloat(newDifficulty),
+				TriggerMetrics:     triggerMetrics,
+			})
+			if err != nil {
+				log.Printf("behavior scheduler: failed to create adaptation log for %s: %v", u.Email, err)
+			}
 		}
 
-		difficultyChange := newDifficulty - t.difficulty
-
-		// Update profile difficulty
-		_, err := s.queries.UpdateBehaviorProfile(ctx, db.UpdateBehaviorProfileParams{
-			UserID:          t.id,
-			DifficultyLevel: numericFromFloat(newDifficulty),
-		})
-		if err != nil {
-			log.Printf("behavior scheduler: failed to update difficulty for %s: %v", t.email, err)
-			continue
-		}
-
-		// Create adaptation log
-		triggerMetrics, _ := json.Marshal(map[string]any{
-			"source":              "relapse_detection",
-			"previous_difficulty": t.difficulty,
-			"new_difficulty":      newDifficulty,
-		})
-		_, err = s.queries.CreateAdaptationLog(ctx, db.CreateAdaptationLogParams{
-			UserID:             t.id,
-			AdaptationReason:   t.reason,
-			DifficultyChange:   numericFromFloat(difficultyChange),
-			PreviousDifficulty: numericFromFloat(t.difficulty),
-			NewDifficulty:      numericFromFloat(newDifficulty),
-			TriggerMetrics:     triggerMetrics,
-		})
-		if err != nil {
-			log.Printf("behavior scheduler: failed to create adaptation log for %s: %v", t.email, err)
-		}
-
-		s.sendRelapseEmail(ctx, t.email, t.name)
-
-		if err := s.queries.UpdateProfileNotifiedAt(ctx, t.id); err != nil {
+		s.sendRelapseEmail(ctx, u.Email, u.Name)
+		if err := s.queries.UpdateProfileNotifiedAt(ctx, u.ID); err != nil {
 			log.Printf("behavior scheduler: failed to update notified_at: %v", err)
 		}
-
 		handled++
 	}
 

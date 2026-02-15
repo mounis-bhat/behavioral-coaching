@@ -257,9 +257,9 @@ type OnboardingChatMessage struct {
 type OnboardingChatRequest struct {
 	UserMessage        string                  `json:"user_message"`
 	History            []OnboardingChatMessage `json:"history"`
-	Goals              json.RawMessage         `json:"goals"`
-	Constraints        json.RawMessage         `json:"constraints"`
-	PsychologicalState json.RawMessage         `json:"psychological_state"`
+	Goals              json.RawMessage         `json:"goals" swaggertype:"object"`
+	Constraints        json.RawMessage         `json:"constraints" swaggertype:"object"`
+	PsychologicalState json.RawMessage         `json:"psychological_state" swaggertype:"object"`
 }
 
 // OnboardingChatResponse is the output from the profiling conversation agent.

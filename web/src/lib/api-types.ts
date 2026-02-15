@@ -1919,7 +1919,13 @@ export interface components {
             content?: string;
             role?: string;
         };
-        "behavior.OnboardingChatRequest": Record<string, never>;
+        "behavior.OnboardingChatRequest": {
+            constraints?: Record<string, never>;
+            goals?: Record<string, never>;
+            history?: components["schemas"]["behavior.OnboardingChatMessage"][];
+            psychological_state?: Record<string, never>;
+            user_message?: string;
+        };
         "behavior.OnboardingChatResponse": {
             ai_message?: string;
             history?: components["schemas"]["behavior.OnboardingChatMessage"][];

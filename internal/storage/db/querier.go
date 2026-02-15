@@ -57,6 +57,7 @@ type Querier interface {
 	GetUserByGoogleID(ctx context.Context, googleID pgtype.Text) (User, error)
 	GetUserByID(ctx context.Context, id pgtype.UUID) (User, error)
 	GetUsersNeedingReminder(ctx context.Context) ([]GetUsersNeedingReminderRow, error)
+	GetUsersWithTodayAdherence(ctx context.Context) ([]pgtype.UUID, error)
 	GetWeeklyCompletionTrends(ctx context.Context, userID pgtype.UUID) ([]GetWeeklyCompletionTrendsRow, error)
 	IncrementFailedLoginAttempts(ctx context.Context, id pgtype.UUID) (User, error)
 	LockUser(ctx context.Context, arg LockUserParams) error

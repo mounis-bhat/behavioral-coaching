@@ -688,6 +688,7 @@ JOIN adherence_states ast ON u.id = ast.user_id
 WHERE bp.onboarding_completed = TRUE
   AND ast.completion_rate < 0.3
   AND ast.total_tasks > 0
+  AND ast.last_computed_at::date = CURRENT_DATE
   AND (bp.last_notified_at IS NULL OR bp.last_notified_at::date < CURRENT_DATE)
 `
 
@@ -761,6 +762,35 @@ func (q *Queries) GetUsersNeedingReminder(ctx context.Context) ([]GetUsersNeedin
 			return nil, err
 		}
 		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getUsersWithTodayAdherence = `-- name: GetUsersWithTodayAdherence :many
+SELECT ast.user_id
+FROM adherence_states ast
+JOIN behavior_profiles bp ON ast.user_id = bp.user_id
+WHERE ast.last_computed_at::date = CURRENT_DATE
+  AND bp.onboarding_completed = TRUE
+  AND ast.total_tasks > 0
+`
+
+func (q *Queries) GetUsersWithTodayAdherence(ctx context.Context) ([]pgtype.UUID, error) {
+	rows, err := q.db.Query(ctx, getUsersWithTodayAdherence)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []pgtype.UUID{}
+	for rows.Next() {
+		var user_id pgtype.UUID
+		if err := rows.Scan(&user_id); err != nil {
+			return nil, err
+		}
+		items = append(items, user_id)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err

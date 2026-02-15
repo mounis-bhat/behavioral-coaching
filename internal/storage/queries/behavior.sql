@@ -103,6 +103,14 @@ RETURNING *;
 -- name: GetAdherenceStateByUserID :one
 SELECT * FROM adherence_states WHERE user_id = $1;
 
+-- name: GetUsersWithTodayAdherence :many
+SELECT ast.user_id
+FROM adherence_states ast
+JOIN behavior_profiles bp ON ast.user_id = bp.user_id
+WHERE ast.last_computed_at::date = CURRENT_DATE
+  AND bp.onboarding_completed = TRUE
+  AND ast.total_tasks > 0;
+
 -- Adaptation Logs
 
 -- name: CreateAdaptationLog :one
@@ -156,6 +164,7 @@ JOIN adherence_states ast ON u.id = ast.user_id
 WHERE bp.onboarding_completed = TRUE
   AND ast.completion_rate < 0.3
   AND ast.total_tasks > 0
+  AND ast.last_computed_at::date = CURRENT_DATE
   AND (bp.last_notified_at IS NULL OR bp.last_notified_at::date < CURRENT_DATE);
 
 -- name: UpdateProfileNotifiedAt :exec

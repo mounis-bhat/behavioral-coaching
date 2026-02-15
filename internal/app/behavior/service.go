@@ -295,14 +295,10 @@ func (s *Service) LogExecution(ctx context.Context, userID string, taskID string
 		return nil, fmt.Errorf("upsert execution log: %w", err)
 	}
 
-	// Best-effort: recompute adherence and trigger adaptation if needed
-	adherence, err := s.RecomputeAdherence(ctx, userID)
-	if err != nil {
+	// Best-effort: recompute adherence (updates dashboard metrics).
+	// Adaptation is handled by the end-of-day cron, not per-task completion.
+	if _, err := s.RecomputeAdherence(ctx, userID); err != nil {
 		log.Printf("warning: failed to recompute adherence after execution log: %v", err)
-	} else if adherence.DifficultyMismatch {
-		if adaptErr := s.AdaptUserPlan(ctx, userID); adaptErr != nil {
-			log.Printf("warning: failed to adapt user plan after mismatch: %v", adaptErr)
-		}
 	}
 
 	return executionLogToResponse(execLog), nil
@@ -489,6 +485,29 @@ func (s *Service) AdaptUserPlan(ctx context.Context, userID string) error {
 	log.Printf("adaptation applied for user %s: difficulty %.1f → %.1f (reason=%q)",
 		userID, currentDifficulty, result.NewDifficulty, result.Reason)
 
+	return nil
+}
+
+// RunEndOfDayAdaptation evaluates all users who have today's adherence data
+// and calls AdaptUserPlan for each. This handles both difficulty increases (high
+// performers) and decreases (struggling users) via the AI advisor.
+func (s *Service) RunEndOfDayAdaptation(ctx context.Context) error {
+	userIDs, err := s.queries.GetUsersWithTodayAdherence(ctx)
+	if err != nil {
+		return fmt.Errorf("get users with today adherence: %w", err)
+	}
+
+	for _, uid := range userIDs {
+		userID := uuidToString(uid)
+		if userID == "" {
+			continue
+		}
+		if err := s.AdaptUserPlan(ctx, userID); err != nil {
+			log.Printf("end-of-day adaptation failed for user %s: %v", userID, err)
+		}
+	}
+
+	log.Printf("end-of-day adaptation complete: evaluated %d users", len(userIDs))
 	return nil
 }
 

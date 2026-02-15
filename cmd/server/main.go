@@ -151,6 +151,11 @@ func main() {
 			jobCtx, cancel := context.WithTimeout(ctx, 10*time.Minute)
 			defer cancel()
 
+			// End-of-day AI adaptation: evaluate all users with today's data
+			if err := behaviorService.RunEndOfDayAdaptation(jobCtx); err != nil {
+				log.Printf("end-of-day adaptation failed: %v", err)
+			}
+
 			handled, err := behaviorScheduler.DetectAndHandleRelapses(jobCtx)
 			if err != nil {
 				log.Printf("relapse detection failed: %v", err)
