@@ -1673,72 +1673,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/recipes/generate": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Generate a recipe
-         * @description Uses AI to generate a recipe based on ingredients and dietary restrictions
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            /** @description Recipe generation request */
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["api.RecipeRequest"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["api.Recipe"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-                /** @description Internal Server Error */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1798,48 +1732,6 @@ export interface components {
         "api.LogoutResponse": {
             /** @example ok */
             status?: string;
-        };
-        /** @description Generated recipe */
-        "api.Recipe": {
-            /** @example 25 minutes */
-            cookTime: string;
-            /** @example A delicious and healthy grilled chicken recipe */
-            description: string;
-            /**
-             * @example [
-             *       "chicken breast",
-             *       "lemon",
-             *       "herbs"
-             *     ]
-             */
-            ingredients: string[];
-            /**
-             * @example [
-             *       "Marinate chicken",
-             *       "Preheat grill",
-             *       "Grill for 12 minutes"
-             *     ]
-             */
-            instructions: string[];
-            /** @example 15 minutes */
-            prepTime: string;
-            /** @example 4 */
-            servings: number;
-            /**
-             * @example [
-             *       "Let rest for 5 minutes before serving"
-             *     ]
-             */
-            tips?: string[];
-            /** @example Grilled Lemon Herb Chicken */
-            title: string;
-        };
-        /** @description Recipe generation request */
-        "api.RecipeRequest": {
-            /** @example gluten-free */
-            dietaryRestrictions?: string;
-            /** @example chicken */
-            ingredient: string;
         };
         /** @description Registration request */
         "api.RegisterRequest": {

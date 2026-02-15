@@ -340,7 +340,7 @@ func (h *AuthHandler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 	h.cookies.SetSessionCookie(w, token)
 	h.auditLogger.Log(r.Context(), "register_success", user.ID, ipAddress, userAgent, nil)
 	if user.Provider == "credentials" && !user.EmailVerified {
-		h.sendVerificationEmail(r.Context(), user, ipAddress, userAgent)
+		go h.sendVerificationEmail(context.Background(), user, ipAddress, userAgent)
 	}
 	writeJSON(w, http.StatusOK, AuthStatusResponse{Status: "ok"})
 }

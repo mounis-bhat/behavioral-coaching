@@ -12,6 +12,7 @@
 		generatePlan,
 		onboardingChat
 	} from '$lib/api';
+	import { user } from '$lib/stores/auth';
 	import type { OnboardingChatMessage, OnboardingChatResponse } from '$lib/api';
 
 	let step = $state(1);
@@ -22,22 +23,28 @@
 	let visible = $state(false);
 	let stepDirection = $state(1);
 	let stepKey = $state(1);
+	let progressPulse = $state(false);
+	let celebrating = $state(false);
 
 	const totalSteps = 7;
 
-	const stepMeta: Record<number, { title: string; subtitle: string; icon: string }> = {
+	let firstName = $derived($user?.name?.split(' ')[0] ?? '');
+
+	let stepMeta = $derived<Record<number, { title: string; subtitle: string; icon: string }>>({
 		1: {
-			title: 'What drives you?',
+			title: firstName ? `What drives you, ${firstName}?` : 'What drives you?',
 			subtitle: 'Every great change starts with knowing what you want.',
 			icon: '🎯'
 		},
 		2: {
 			title: 'Your world, your rules',
-			subtitle: "We'll work with your schedule, not against it.",
+			subtitle: firstName
+				? `We'll work with your schedule, not against it, ${firstName}.`
+				: "We'll work with your schedule, not against it.",
 			icon: '⏱️'
 		},
 		3: {
-			title: 'Know yourself',
+			title: firstName ? `Know yourself, ${firstName}` : 'Know yourself',
 			subtitle: 'Honest self-awareness is the foundation of growth.',
 			icon: '🧠'
 		},
@@ -47,7 +54,7 @@
 			icon: '⚡'
 		},
 		5: {
-			title: "Let's talk",
+			title: firstName ? `Let's talk, ${firstName}` : "Let's talk",
 			subtitle: 'A brief conversation so we can truly understand you.',
 			icon: '💬'
 		},
@@ -57,11 +64,11 @@
 			icon: '❤️'
 		},
 		7: {
-			title: 'Your plan style',
-			subtitle: 'Almost there — choose how you want your days structured.',
+			title: firstName ? `Almost there, ${firstName}` : 'Your plan style',
+			subtitle: 'Choose how you want your days structured.',
 			icon: '📋'
 		}
-	};
+	});
 
 	const categoryPillColors: Record<string, string> = {
 		health: 'bg-green-400/20 text-green-300 ring-1 ring-green-400/30',
@@ -164,6 +171,20 @@
 		}
 	];
 
+	const confettiColors = ['#818cf8', '#a78bfa', '#06b6d4', '#22d3ee', '#f472b6', '#fbbf24', '#34d399'];
+
+	function generateConfetti() {
+		return Array.from({ length: 40 }, (_, i) => ({
+			x: Math.random() * 100,
+			color: confettiColors[Math.floor(Math.random() * confettiColors.length)],
+			size: Math.random() * 8 + 4,
+			delay: Math.random() * 0.8,
+			rotation: Math.random() * 720 - 360
+		}));
+	}
+
+	let confettiPieces = $state<ReturnType<typeof generateConfetti>>([]);
+
 	onMount(async () => {
 		const result = await fetchProfile();
 		if (result.data && result.data.onboarding_completed) {
@@ -187,6 +208,11 @@
 		return true;
 	}
 
+	function triggerPulse() {
+		progressPulse = true;
+		setTimeout(() => (progressPulse = false), 600);
+	}
+
 	function next() {
 		error = null;
 		if (!canAdvance()) {
@@ -197,6 +223,7 @@
 			stepDirection = 1;
 			step++;
 			stepKey = step;
+			triggerPulse();
 			if (step === 5 && !chatStarted) {
 				startChat();
 			}
@@ -209,6 +236,7 @@
 			stepDirection = -1;
 			step--;
 			stepKey = step;
+			triggerPulse();
 		}
 	}
 
@@ -368,9 +396,14 @@
 			const planResult = await generatePlan();
 			if (planResult.error) throw new Error(planResult.error);
 
+			celebrating = true;
+			confettiPieces = generateConfetti();
+			await new Promise((r) => setTimeout(r, 1800));
+
 			await goto(resolve('/dashboard'));
 		} catch (e) {
 			error = e instanceof Error ? e.message : 'Something went wrong';
+			celebrating = false;
 		} finally {
 			loading = false;
 		}
@@ -383,14 +416,45 @@
 
 {#if initialLoading}
 	<div class="onboarding-bg flex min-h-screen items-center justify-center">
+		<div class="aurora">
+			<div class="aurora-layer aurora-1"></div>
+			<div class="aurora-layer aurora-2"></div>
+			<div class="aurora-layer aurora-3"></div>
+		</div>
+		<div class="orb orb-indigo"></div>
+		<div class="orb orb-purple"></div>
+		<div class="orb orb-teal"></div>
 		<div
 			class="h-8 w-8 animate-spin rounded-full border-2 border-indigo-400/30 border-t-indigo-400"
 		></div>
 	</div>
 {:else}
 	<div class="onboarding-bg min-h-screen px-6 py-8">
+		<div class="aurora">
+			<div class="aurora-layer aurora-1"></div>
+			<div class="aurora-layer aurora-2"></div>
+			<div class="aurora-layer aurora-3"></div>
+		</div>
+		<div class="orb orb-indigo"></div>
+		<div class="orb orb-purple"></div>
+		<div class="orb orb-teal"></div>
+
+		{#if celebrating}
+			<div class="confetti-overlay">
+				{#each confettiPieces as piece}
+					<div
+						class="confetti-piece"
+						style="--x: {piece.x}%; --color: {piece.color}; --size: {piece.size}px; --delay: {piece.delay}s; --rotation: {piece.rotation}deg;"
+					></div>
+				{/each}
+				<div class="celebration-text">
+					{firstName ? `You're all set, ${firstName}!` : "You're all set!"}
+				</div>
+			</div>
+		{/if}
+
 		{#if visible}
-			<div class="mx-auto max-w-lg">
+			<div class="relative z-10 mx-auto max-w-lg">
 				<!-- Step indicator badge -->
 				<div class="mb-4 flex items-center justify-center gap-2">
 					<span class="text-2xl">{stepMeta[step].icon}</span>
@@ -411,6 +475,7 @@
 				<div class="mt-6 mb-8 h-1.5 w-full rounded-full bg-white/10">
 					<div
 						class="progress-fill h-1.5 rounded-full transition-all duration-500"
+						class:pulse={progressPulse}
 						style="width: {(step / totalSteps) * 100}%"
 					></div>
 				</div>
@@ -428,11 +493,11 @@
 				{#key stepKey}
 					<section in:fly={{ x: stepDirection * 80, duration: 400, easing: cubicOut }}>
 						{#if step === 1}
-							<div class="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm">
-								<p class="mb-4 text-sm text-indigo-200/60">
+							<div class="stagger-in rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm">
+								<p class="stagger-item mb-4 text-sm text-indigo-200/60" style="--stagger: 0">
 									Select the areas you want to focus on.
 								</p>
-								<div class="flex flex-wrap gap-2">
+								<div class="stagger-item flex flex-wrap gap-2" style="--stagger: 1">
 									{#each categories as cat (cat.id)}
 										<button
 											type="button"
@@ -447,7 +512,7 @@
 										</button>
 									{/each}
 								</div>
-								<div class="mt-5">
+								<div class="stagger-item mt-5" style="--stagger: 2">
 									<label
 										for="free-goals"
 										class="mb-1.5 block text-sm font-medium text-indigo-200/80"
@@ -465,8 +530,8 @@
 								</div>
 							</div>
 						{:else if step === 2}
-							<div class="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm">
-								<div class="mb-5">
+							<div class="stagger-in rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm">
+								<div class="stagger-item mb-5" style="--stagger: 0">
 									<label for="time" class="mb-1.5 block text-sm font-medium text-indigo-200/80">
 										Daily time available
 									</label>
@@ -481,7 +546,7 @@
 										<option value="3hr+">3+ hours</option>
 									</select>
 								</div>
-								<div>
+								<div class="stagger-item" style="--stagger: 1">
 									<label
 										for="limitations"
 										class="mb-1.5 block text-sm font-medium text-indigo-200/80"
@@ -499,9 +564,9 @@
 								</div>
 							</div>
 						{:else if step === 3}
-							<div class="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm">
+							<div class="stagger-in rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm">
 								<div class="space-y-6">
-									<div>
+									<div class="stagger-item" style="--stagger: 0">
 										<label
 											for="motivation"
 											class="mb-2 flex items-center justify-between text-sm font-medium text-indigo-200/80"
@@ -521,7 +586,7 @@
 											class="onboarding-slider"
 										/>
 									</div>
-									<div>
+									<div class="stagger-item" style="--stagger: 1">
 										<label
 											for="stress"
 											class="mb-2 flex items-center justify-between text-sm font-medium text-indigo-200/80"
@@ -541,7 +606,7 @@
 											class="onboarding-slider"
 										/>
 									</div>
-									<div>
+									<div class="stagger-item" style="--stagger: 2">
 										<label
 											for="energy"
 											class="mb-2 flex items-center justify-between text-sm font-medium text-indigo-200/80"
@@ -564,8 +629,8 @@
 								</div>
 							</div>
 						{:else if step === 4}
-							<div class="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm">
-								<div>
+							<div class="stagger-in rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm">
+								<div class="stagger-item" style="--stagger: 0">
 									<label
 										for="difficulty"
 										class="mb-2 flex items-center justify-between text-sm font-medium text-indigo-200/80"
@@ -588,9 +653,10 @@
 								</div>
 							</div>
 						{:else if step === 5}
-							<div>
+							<div class="stagger-in">
 								<div
-									class="mb-4 overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.03]"
+									class="stagger-item mb-4 overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.03]"
+									style="--stagger: 0"
 								>
 									<div
 										{@attach setChatMessagesEl}
@@ -622,7 +688,7 @@
 								</div>
 
 								{#if !chatComplete}
-									<div class="flex gap-2">
+									<div class="stagger-item flex gap-2" style="--stagger: 1">
 										<input
 											type="text"
 											bind:value={chatInput}
@@ -643,15 +709,16 @@
 								{/if}
 							</div>
 						{:else if step === 6}
-							<div class="space-y-3">
-								{#each emotionalStates as state (state.id)}
+							<div class="stagger-in space-y-3">
+								{#each emotionalStates as state, idx (state.id)}
 									<button
 										type="button"
 										onclick={() => (selectedEmotionalState = state.id)}
-										class="relative w-full rounded-xl p-4 text-left transition {selectedEmotionalState ===
+										class="stagger-item relative w-full rounded-xl p-4 text-left transition {selectedEmotionalState ===
 										state.id
 											? 'border border-indigo-400/30 bg-indigo-500/10 ring-1 ring-indigo-400/20'
 											: 'border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06]'}"
+										style="--stagger: {idx}"
 									>
 										{#if recommendedEmotionalState === state.id}
 											<span
@@ -667,9 +734,10 @@
 								<button
 									type="button"
 									onclick={() => (selectedEmotionalState = '')}
-									class="w-full rounded-xl p-4 text-left transition {selectedEmotionalState === ''
+									class="stagger-item w-full rounded-xl p-4 text-left transition {selectedEmotionalState === ''
 										? 'border border-indigo-400/30 bg-indigo-500/10 ring-1 ring-indigo-400/20'
 										: 'border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06]'}"
+									style="--stagger: {emotionalStates.length}"
 								>
 									<p class="font-medium text-white">None of these</p>
 									<p class="mt-1 text-sm text-indigo-200/60">
@@ -678,15 +746,16 @@
 								</button>
 							</div>
 						{:else if step === 7}
-							<div class="space-y-3">
-								{#each deliveryModes as mode (mode.id)}
+							<div class="stagger-in space-y-3">
+								{#each deliveryModes as mode, idx (mode.id)}
 									<button
 										type="button"
 										onclick={() => (selectedDeliveryMode = mode.id)}
-										class="relative w-full rounded-xl p-4 text-left transition {selectedDeliveryMode ===
+										class="stagger-item relative w-full rounded-xl p-4 text-left transition {selectedDeliveryMode ===
 										mode.id
 											? 'border border-indigo-400/30 bg-indigo-500/10 ring-1 ring-indigo-400/20'
 											: 'border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06]'}"
+										style="--stagger: {idx}"
 									>
 										{#if recommendedDeliveryMode === mode.id}
 											<span
@@ -754,7 +823,7 @@
 							disabled={loading}
 							class="rounded-lg bg-white px-5 py-2.5 text-sm font-semibold text-slate-900 transition hover:bg-indigo-100 disabled:opacity-50"
 						>
-							{loading ? 'Setting up...' : 'Complete setup'}
+							{loading ? 'Setting up...' : firstName ? `Launch ${firstName}'s plan` : 'Complete setup'}
 						</button>
 					{/if}
 				</div>
@@ -766,11 +835,201 @@
 <style>
 	.onboarding-bg {
 		background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 40%, #312e81 100%);
+		position: relative;
+		overflow: hidden;
 	}
 
+	/* Aurora layers */
+	.aurora {
+		position: fixed;
+		inset: 0;
+		pointer-events: none;
+		z-index: 0;
+	}
+
+	.aurora-layer {
+		position: absolute;
+		width: 150%;
+		height: 150%;
+		border-radius: 50%;
+		opacity: 0.15;
+	}
+
+	.aurora-1 {
+		background: radial-gradient(ellipse at 30% 20%, rgba(129, 140, 248, 0.4), transparent 70%);
+		animation: aurora-drift 18s ease-in-out infinite;
+	}
+
+	.aurora-2 {
+		background: radial-gradient(ellipse at 70% 60%, rgba(167, 139, 250, 0.3), transparent 70%);
+		animation: aurora-drift 15s ease-in-out infinite reverse;
+		animation-delay: -5s;
+	}
+
+	.aurora-3 {
+		background: radial-gradient(ellipse at 50% 80%, rgba(6, 182, 212, 0.25), transparent 70%);
+		animation: aurora-drift 20s ease-in-out infinite;
+		animation-delay: -10s;
+	}
+
+	@keyframes aurora-drift {
+		0%, 100% {
+			transform: translate(0, 0) scale(1);
+		}
+		33% {
+			transform: translate(5%, -8%) scale(1.05);
+		}
+		66% {
+			transform: translate(-3%, 5%) scale(0.95);
+		}
+	}
+
+	/* Floating blobs */
+	.orb {
+		position: fixed;
+		border-radius: 50%;
+		filter: blur(120px);
+		opacity: 0.2;
+		pointer-events: none;
+		z-index: 0;
+	}
+
+	.orb-indigo {
+		width: 500px;
+		height: 500px;
+		background: #818cf8;
+		top: -150px;
+		left: -150px;
+		animation: float 8s ease-in-out infinite;
+	}
+
+	.orb-purple {
+		width: 450px;
+		height: 450px;
+		background: #a78bfa;
+		top: 30%;
+		right: -100px;
+		animation: float 12s ease-in-out infinite reverse;
+	}
+
+	.orb-teal {
+		width: 400px;
+		height: 400px;
+		background: #06b6d4;
+		bottom: -100px;
+		left: 30%;
+		animation: float 16s ease-in-out infinite;
+	}
+
+	@keyframes float {
+		0%, 100% {
+			transform: translateY(0) translateX(0);
+		}
+		33% {
+			transform: translateY(-30px) translateX(15px);
+		}
+		66% {
+			transform: translateY(15px) translateX(-20px);
+		}
+	}
+
+	/* Progress bar */
 	.progress-fill {
 		background: linear-gradient(90deg, #818cf8, #a78bfa);
 		box-shadow: 0 0 12px rgba(129, 140, 248, 0.5);
+	}
+
+	.progress-fill.pulse {
+		animation: progress-pulse 0.6s ease-out;
+	}
+
+	@keyframes progress-pulse {
+		0% {
+			box-shadow: 0 0 12px rgba(129, 140, 248, 0.5);
+		}
+		50% {
+			box-shadow: 0 0 24px rgba(129, 140, 248, 0.9), 0 0 40px rgba(167, 139, 250, 0.4);
+		}
+		100% {
+			box-shadow: 0 0 12px rgba(129, 140, 248, 0.5);
+		}
+	}
+
+	/* Stagger animations */
+	.stagger-item {
+		opacity: 0;
+		animation: stagger-fade-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+		animation-delay: calc(var(--stagger, 0) * 70ms + 100ms);
+	}
+
+	@keyframes stagger-fade-up {
+		from {
+			opacity: 0;
+			transform: translateY(12px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
+	}
+
+	/* Confetti celebration */
+	.confetti-overlay {
+		position: fixed;
+		inset: 0;
+		z-index: 50;
+		pointer-events: none;
+		overflow: hidden;
+	}
+
+	.confetti-piece {
+		position: absolute;
+		top: -10vh;
+		left: var(--x);
+		width: var(--size);
+		height: var(--size);
+		background: var(--color);
+		border-radius: 2px;
+		animation: confetti-fall 1.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+		animation-delay: var(--delay);
+		opacity: 0;
+	}
+
+	@keyframes confetti-fall {
+		0% {
+			transform: translateY(-10vh) rotate(0deg);
+			opacity: 1;
+		}
+		100% {
+			transform: translateY(110vh) rotate(var(--rotation));
+			opacity: 0;
+		}
+	}
+
+	.celebration-text {
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		transform: translate(-50%, -50%) scale(0.8);
+		font-size: 2rem;
+		font-weight: 700;
+		color: white;
+		text-align: center;
+		white-space: nowrap;
+		opacity: 0;
+		animation: celebration-appear 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.3s forwards;
+		text-shadow: 0 0 40px rgba(129, 140, 248, 0.5);
+	}
+
+	@keyframes celebration-appear {
+		from {
+			opacity: 0;
+			transform: translate(-50%, -50%) scale(0.8);
+		}
+		to {
+			opacity: 1;
+			transform: translate(-50%, -50%) scale(1);
+		}
 	}
 
 	/* Range slider */
