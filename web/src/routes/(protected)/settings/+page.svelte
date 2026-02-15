@@ -1,5 +1,9 @@
 <script lang="ts">
 	import type { components } from '$lib/api-types';
+	import { resolve } from '$app/paths';
+	import { onMount } from 'svelte';
+	import { fly } from 'svelte/transition';
+	import { cubicOut } from 'svelte/easing';
 	import { user } from '$lib/stores/auth';
 	import { get } from 'svelte/store';
 
@@ -8,6 +12,7 @@
 	type AvatarConfirmRequest = components['schemas']['api.AvatarConfirmRequest'];
 	type AvatarURLResponse = components['schemas']['api.AvatarURLResponse'];
 
+	let visible = $state(false);
 	let currentPassword = $state('');
 	let newPassword = $state('');
 	let confirmPassword = $state('');
@@ -19,6 +24,10 @@
 	let avatarUploading = $state(false);
 	let selectedFile = $state<File | null>(null);
 	let previewUrl = $state<string | null>(null);
+
+	onMount(() => {
+		visible = true;
+	});
 
 	function updatePreviewUrl(file: File | null) {
 		if (previewUrl) {
@@ -154,110 +163,193 @@
 	}
 </script>
 
-<main class="mx-auto max-w-md space-y-8 p-8">
-	<h1 class="mb-6 text-3xl font-bold">Settings</h1>
+<svelte:head>
+	<title>Settings — Behavioral Coaching</title>
+</svelte:head>
 
-	<section class="space-y-4">
-		<h2 class="text-xl font-semibold">Profile image</h2>
-		<div class="flex items-center gap-4">
-			{#if previewUrl}
-				<img src={previewUrl} alt="Avatar preview" class="h-16 w-16 rounded-full object-cover" />
-			{:else if $user?.picture}
-				<img src={$user.picture} alt={$user.name} class="h-16 w-16 rounded-full object-cover" />
-			{:else}
-				<div
-					class="flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 text-sm font-semibold text-gray-500"
+<div class="settings-bg min-h-screen px-6 py-8">
+	{#if visible}
+		<div class="mx-auto max-w-lg">
+			<!-- Header -->
+			<div in:fly={{ y: -10, duration: 500, easing: cubicOut }} class="mb-8">
+				<a
+					href={resolve('/dashboard')}
+					class="text-sm text-indigo-300/50 transition hover:text-indigo-200"
 				>
-					{$user?.name?.[0] ?? '?'}
-				</div>
-			{/if}
-			<div>
-				<p class="text-sm text-gray-600">JPG, PNG, or WebP up to 5MB.</p>
-				<label
-					class="mt-2 inline-flex cursor-pointer items-center gap-2 text-sm font-medium text-black"
-				>
-					<input
-						type="file"
-						accept="image/jpeg,image/png,image/webp"
-						class="hidden"
-						onchange={handleFileChange}
-					/>
-					<span class="rounded border px-3 py-1.5">Choose image</span>
-				</label>
-				{#if selectedFile}
-					<p class="mt-1 text-xs text-gray-500">{selectedFile.name}</p>
-				{/if}
+					&larr; Dashboard
+				</a>
+				<h1 class="mt-3 text-2xl font-bold text-white">Settings</h1>
 			</div>
-		</div>
-		{#if avatarError}
-			<div class="rounded bg-red-100 p-3 text-sm text-red-700">{avatarError}</div>
-		{/if}
-		{#if avatarSuccess}
-			<div class="rounded bg-green-100 p-3 text-sm text-green-700">{avatarSuccess}</div>
-		{/if}
-		<button
-			type="button"
-			disabled={avatarUploading || !selectedFile}
-			onclick={handleAvatarUpload}
-			class="rounded bg-black px-4 py-2 text-sm text-white disabled:opacity-60"
-		>
-			{avatarUploading ? 'Uploading...' : 'Upload image'}
-		</button>
-	</section>
 
-	{#if error}
-		<div class="mb-4 rounded bg-red-100 p-3 text-sm text-red-700">{error}</div>
-	{/if}
-	{#if success}
-		<div class="mb-4 rounded bg-green-100 p-3 text-sm text-green-700">{success}</div>
-	{/if}
+			<!-- Profile Image -->
+			<section
+				in:fly={{ y: 20, duration: 600, delay: 100, easing: cubicOut }}
+				class="mb-6 rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm"
+			>
+				<h2 class="mb-4 text-sm font-semibold text-white">Profile image</h2>
+				<div class="flex items-center gap-4">
+					{#if previewUrl}
+						<img
+							src={previewUrl}
+							alt="Avatar preview"
+							class="h-16 w-16 rounded-full object-cover ring-2 ring-white/10"
+						/>
+					{:else if $user?.picture}
+						<img
+							src={$user.picture}
+							alt={$user.name}
+							class="h-16 w-16 rounded-full object-cover ring-2 ring-white/10"
+						/>
+					{:else}
+						<div
+							class="flex h-16 w-16 items-center justify-center rounded-full bg-white/10 text-lg font-semibold text-indigo-200/70 ring-2 ring-white/10"
+						>
+							{$user?.name?.[0] ?? '?'}
+						</div>
+					{/if}
+					<div>
+						<p class="text-xs text-indigo-200/50">JPG, PNG, or WebP up to 5 MB</p>
+						<label
+							class="mt-2 inline-flex cursor-pointer items-center gap-2 text-sm font-medium text-indigo-200/70"
+						>
+							<input
+								type="file"
+								accept="image/jpeg,image/png,image/webp"
+								class="hidden"
+								onchange={handleFileChange}
+							/>
+							<span
+								class="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 transition hover:bg-white/10 hover:text-white"
+							>
+								Choose image
+							</span>
+						</label>
+						{#if selectedFile}
+							<p class="mt-1 text-xs text-indigo-200/40">{selectedFile.name}</p>
+						{/if}
+					</div>
+				</div>
 
-	<form
-		onsubmit={(e: Event) => {
-			e.preventDefault();
-			handleChangePassword();
-		}}
-		class="space-y-4"
-	>
-		<div>
-			<label for="current" class="mb-1 block text-sm font-medium">Current password</label>
-			<input
-				id="current"
-				type="password"
-				bind:value={currentPassword}
-				required
-				class="w-full rounded border px-3 py-2"
-			/>
+				{#if avatarError}
+					<div
+						in:fly={{ y: -5, duration: 300 }}
+						class="mt-4 rounded-lg bg-red-500/10 p-3 text-sm text-red-300 ring-1 ring-red-500/20"
+					>
+						{avatarError}
+					</div>
+				{/if}
+				{#if avatarSuccess}
+					<div
+						in:fly={{ y: -5, duration: 300 }}
+						class="mt-4 rounded-lg bg-green-500/10 p-3 text-sm text-green-300 ring-1 ring-green-500/20"
+					>
+						{avatarSuccess}
+					</div>
+				{/if}
+
+				<button
+					type="button"
+					disabled={avatarUploading || !selectedFile}
+					onclick={handleAvatarUpload}
+					class="mt-4 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-indigo-100 disabled:opacity-50"
+				>
+					{avatarUploading ? 'Uploading...' : 'Upload image'}
+				</button>
+			</section>
+
+			<!-- Change Password -->
+			<section
+				in:fly={{ y: 20, duration: 600, delay: 200, easing: cubicOut }}
+				class="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm"
+			>
+				<h2 class="mb-4 text-sm font-semibold text-white">Change password</h2>
+
+				{#if error}
+					<div
+						in:fly={{ y: -5, duration: 300 }}
+						class="mb-4 rounded-lg bg-red-500/10 p-3 text-sm text-red-300 ring-1 ring-red-500/20"
+					>
+						{error}
+					</div>
+				{/if}
+				{#if success}
+					<div
+						in:fly={{ y: -5, duration: 300 }}
+						class="mb-4 rounded-lg bg-green-500/10 p-3 text-sm text-green-300 ring-1 ring-green-500/20"
+					>
+						{success}
+					</div>
+				{/if}
+
+				<form
+					onsubmit={(e: Event) => {
+						e.preventDefault();
+						handleChangePassword();
+					}}
+					class="space-y-4"
+				>
+					<div>
+						<label for="current" class="mb-1.5 block text-sm font-medium text-indigo-200/80">
+							Current password
+						</label>
+						<input
+							id="current"
+							type="password"
+							bind:value={currentPassword}
+							required
+							class="w-full rounded-lg border border-white/10 bg-white/5 px-3.5 py-2.5 text-sm text-white placeholder-indigo-300/30 outline-none transition focus:border-indigo-400/40 focus:ring-1 focus:ring-indigo-400/30"
+							placeholder="••••••••"
+						/>
+					</div>
+					<div>
+						<label for="new" class="mb-1.5 block text-sm font-medium text-indigo-200/80">
+							New password
+						</label>
+						<input
+							id="new"
+							type="password"
+							bind:value={newPassword}
+							required
+							class="w-full rounded-lg border border-white/10 bg-white/5 px-3.5 py-2.5 text-sm text-white placeholder-indigo-300/30 outline-none transition focus:border-indigo-400/40 focus:ring-1 focus:ring-indigo-400/30"
+							placeholder="••••••••"
+						/>
+						<p class="mt-1.5 text-xs text-indigo-200/40">
+							Min 8 chars, include uppercase, number, and special character.
+						</p>
+					</div>
+					<div>
+						<label for="confirm" class="mb-1.5 block text-sm font-medium text-indigo-200/80">
+							Confirm new password
+						</label>
+						<input
+							id="confirm"
+							type="password"
+							bind:value={confirmPassword}
+							required
+							class="w-full rounded-lg border border-white/10 bg-white/5 px-3.5 py-2.5 text-sm text-white placeholder-indigo-300/30 outline-none transition focus:border-indigo-400/40 focus:ring-1 focus:ring-indigo-400/30"
+							placeholder="••••••••"
+						/>
+					</div>
+					<button
+						type="submit"
+						disabled={loading}
+						class="w-full rounded-lg bg-white py-2.5 text-sm font-semibold text-slate-900 transition hover:bg-indigo-100 disabled:opacity-50"
+					>
+						{loading ? 'Updating...' : 'Update password'}
+					</button>
+				</form>
+			</section>
 		</div>
-		<div>
-			<label for="new" class="mb-1 block text-sm font-medium">New password</label>
-			<input
-				id="new"
-				type="password"
-				bind:value={newPassword}
-				required
-				class="w-full rounded border px-3 py-2"
-			/>
-			<p class="mt-2 text-xs text-gray-500">
-				Min 8 chars, include uppercase, number, and special character.
-			</p>
-		</div>
-		<div>
-			<label for="confirm" class="mb-1 block text-sm font-medium">Confirm new password</label>
-			<input
-				id="confirm"
-				type="password"
-				bind:value={confirmPassword}
-				required
-				class="w-full rounded border px-3 py-2"
-			/>
-		</div>
-		<button
-			type="submit"
-			disabled={loading}
-			class="w-full rounded bg-black px-4 py-2 text-white disabled:opacity-60"
-		>
-			{loading ? 'Updating...' : 'Update password'}
-		</button>
-	</form>
-</main>
+	{/if}
+</div>
+
+<style>
+	.settings-bg {
+		background: linear-gradient(
+			135deg,
+			#0f172a 0%,
+			#1e1b4b 40%,
+			#312e81 100%
+		);
+	}
+</style>
