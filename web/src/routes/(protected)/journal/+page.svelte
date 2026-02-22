@@ -257,26 +257,14 @@
 			</div>
 		</div>
 	{:else}
-		<!-- Header -->
-		<header class="border-b border-white/6 bg-white/2 py-5">
-			<div
-				in:fly={{ y: -10, duration: 500, easing: cubicOut }}
-				class="mx-auto flex max-w-3xl items-center justify-between px-6"
-			>
-				<div>
-					<h1 class="text-lg font-semibold text-white">Daily Journal</h1>
-					<p class="text-sm text-indigo-200/50">{todayFormatted}</p>
-				</div>
-				<a
-					href={resolve('/dashboard')}
-					class="rounded-lg px-3 py-1.5 text-sm text-indigo-200/60 transition hover:bg-white/10 hover:text-white"
-				>
-					← Dashboard
-				</a>
-			</div>
-		</header>
-
 		<main class="mx-auto max-w-3xl px-6 py-8">
+			<div in:fly={{ y: -10, duration: 500, easing: cubicOut }} class="mb-8">
+				<a href={resolve('/dashboard')} class="text-sm text-indigo-300/50 transition hover:text-indigo-200">
+					&larr; Dashboard
+				</a>
+				<h1 class="mt-3 text-2xl font-bold text-white">Daily Journal</h1>
+				<p class="mt-1 text-sm text-indigo-200/50">{todayFormatted}</p>
+			</div>
 			<!-- Toast -->
 			{#if toast}
 				<div
