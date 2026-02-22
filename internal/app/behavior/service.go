@@ -225,6 +225,11 @@ func (s *Service) OnboardingChat(ctx context.Context, req OnboardingChatRequest)
 	return s.profiler.Chat(ctx, req)
 }
 
+// StreamOnboardingChat delegates to the profiling conversation agent and returns a streaming channel.
+func (s *Service) StreamOnboardingChat(ctx context.Context, req OnboardingChatRequest) (<-chan OnboardingChatChunk, error) {
+	return s.profiler.StreamChat(ctx, req)
+}
+
 func (s *Service) GetTodaysPlan(ctx context.Context, userID string) (*PlanResponse, error) {
 	uid, err := parseUUID(userID)
 	if err != nil {

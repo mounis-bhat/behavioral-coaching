@@ -272,3 +272,13 @@ type OnboardingChatResponse struct {
 	RecommendedDeliveryMode   string                  `json:"recommended_delivery_mode,omitempty"`
 	RecommendedEmotionalState string                  `json:"recommended_emotional_state,omitempty"`
 }
+
+// OnboardingChatChunk is a single SSE event from a streaming onboarding chat response.
+// When Done is false, Content holds a partial text fragment.
+// When Done is true, Response holds the complete response.
+type OnboardingChatChunk struct {
+	Content  string                  `json:"content,omitempty"`
+	Done     bool                    `json:"done"`
+	Response *OnboardingChatResponse `json:"response,omitempty"`
+	Err      error                   `json:"-"`
+}

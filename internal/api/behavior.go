@@ -3,8 +3,10 @@ package api
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/mounis-bhat/starter/internal/app/behavior"
 )
@@ -312,9 +314,11 @@ func (h *BehaviorHandler) HandleGetAnalytics(w http.ResponseWriter, r *http.Requ
 	writeJSON(w, http.StatusOK, analytics)
 }
 
-// HandleOnboardingChat handles a turn of the onboarding profiling conversation
+// HandleOnboardingChat handles a turn of the onboarding profiling conversation.
+// When the client sends Accept: text/event-stream, the response is streamed as SSE.
+// Each SSE event is a JSON object: {"content":"..."} for chunks, or {"done":true,"response":{...}} for the final event.
 // @Summary      Onboarding chat
-// @Description  Processes a turn of the AI profiling conversation during onboarding
+// @Description  Processes a turn of the AI profiling conversation during onboarding. Supports SSE streaming via Accept: text/event-stream.
 // @Tags         behavior
 // @Accept       json
 // @Produce      json
@@ -338,6 +342,11 @@ func (h *BehaviorHandler) HandleOnboardingChat(w http.ResponseWriter, r *http.Re
 		return
 	}
 
+	if strings.Contains(r.Header.Get("Accept"), "text/event-stream") {
+		h.streamOnboardingChat(w, r, req)
+		return
+	}
+
 	resp, err := h.service.OnboardingChat(r.Context(), req)
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to process chat"})
@@ -345,6 +354,39 @@ func (h *BehaviorHandler) HandleOnboardingChat(w http.ResponseWriter, r *http.Re
 	}
 
 	writeJSON(w, http.StatusOK, resp)
+}
+
+func (h *BehaviorHandler) streamOnboardingChat(w http.ResponseWriter, r *http.Request, req behavior.OnboardingChatRequest) {
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "streaming not supported"})
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+	w.Header().Set("X-Accel-Buffering", "no")
+
+	writeEvent := func(v any) {
+		data, _ := json.Marshal(v)
+		fmt.Fprintf(w, "data: %s\n\n", data)
+		flusher.Flush()
+	}
+
+	chunks, err := h.service.StreamOnboardingChat(r.Context(), req)
+	if err != nil {
+		writeEvent(map[string]string{"error": "failed to start chat stream"})
+		return
+	}
+
+	for chunk := range chunks {
+		if chunk.Err != nil {
+			writeEvent(map[string]string{"error": chunk.Err.Error()})
+			return
+		}
+		writeEvent(chunk)
+	}
 }
 
 // HandleGetTodaysExecutionLogs returns today's execution logs for the authenticated user

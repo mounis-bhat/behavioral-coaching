@@ -1067,7 +1067,7 @@ export interface paths {
         put?: never;
         /**
          * Onboarding chat
-         * @description Processes a turn of the AI profiling conversation during onboarding
+         * @description Processes a turn of the AI profiling conversation during onboarding. Supports SSE streaming via Accept: text/event-stream.
          */
         post: {
             parameters: {

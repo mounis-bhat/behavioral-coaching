@@ -10,7 +10,7 @@
 		createProfile,
 		updateProfile,
 		generatePlan,
-		onboardingChat
+		streamOnboardingChat
 	} from '$lib/api';
 	import { user } from '$lib/stores/auth';
 	import type { OnboardingChatMessage, OnboardingChatResponse } from '$lib/api';
@@ -119,6 +119,7 @@
 	let chatInput = $state('');
 	let chatLoading = $state(false);
 	let chatComplete = $state(false);
+	let streamingMessage = $state('');
 	let chatSummary = $state<Record<string, unknown> | undefined>(undefined);
 	let recommendedDeliveryMode = $state('');
 	let recommendedEmotionalState = $state('');
@@ -261,24 +262,30 @@
 	async function startChat() {
 		chatStarted = true;
 		chatLoading = true;
+		streamingMessage = '';
 		error = null;
-		try {
-			const result = await onboardingChat('', [], getOnboardingContext());
-			if (result.error) throw new Error(result.error);
-			if (result.data) {
-				chatHistory = result.data.history;
-				chatComplete = result.data.is_complete;
-				if (result.data.is_complete) {
-					applyRecommendations(result.data);
-				}
+		await streamOnboardingChat(
+			'',
+			[],
+			getOnboardingContext(),
+			(chunk: string) => {
+				streamingMessage += chunk;
+				scrollChatToBottom();
+			},
+			(response: OnboardingChatResponse) => {
+				chatHistory = response.history;
+				chatComplete = response.is_complete;
+				streamingMessage = '';
+				if (response.is_complete) applyRecommendations(response);
+			},
+			(err: string) => {
+				error = err;
+				streamingMessage = '';
 			}
-		} catch (e) {
-			error = e instanceof Error ? e.message : 'Failed to start conversation';
-		} finally {
-			chatLoading = false;
-			await tick();
-			scrollChatToBottom();
-		}
+		);
+		chatLoading = false;
+		await tick();
+		scrollChatToBottom();
 	}
 
 	async function sendChatMessage() {
@@ -289,26 +296,32 @@
 		chatHistory = [...historySnapshot, optimisticMessage];
 		chatInput = '';
 		chatLoading = true;
+		streamingMessage = '';
 		await tick();
 		scrollChatToBottom();
 		error = null;
-		try {
-			const result = await onboardingChat(message, historySnapshot, getOnboardingContext());
-			if (result.error) throw new Error(result.error);
-			if (result.data) {
-				chatHistory = ensureUserMessage(result.data.history, optimisticMessage);
-				chatComplete = result.data.is_complete;
-				if (result.data.is_complete) {
-					applyRecommendations(result.data);
-				}
+		await streamOnboardingChat(
+			message,
+			historySnapshot,
+			getOnboardingContext(),
+			(chunk: string) => {
+				streamingMessage += chunk;
+				scrollChatToBottom();
+			},
+			(response: OnboardingChatResponse) => {
+				chatHistory = ensureUserMessage(response.history, optimisticMessage);
+				chatComplete = response.is_complete;
+				streamingMessage = '';
+				if (response.is_complete) applyRecommendations(response);
+			},
+			(err: string) => {
+				error = err;
+				streamingMessage = '';
 			}
-		} catch (e) {
-			error = e instanceof Error ? e.message : 'Failed to send message';
-		} finally {
-			chatLoading = false;
-			await tick();
-			scrollChatToBottom();
-		}
+		);
+		chatLoading = false;
+		await tick();
+		scrollChatToBottom();
 	}
 
 	function applyRecommendations(data: OnboardingChatResponse) {
@@ -655,7 +668,7 @@
 						{:else if step === 5}
 							<div class="stagger-in">
 								<div
-									class="stagger-item mb-4 overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.03]"
+									class="stagger-item mb-4 overflow-hidden rounded-2xl border border-white/6 bg-white/3"
 									style="--stagger: 0"
 								>
 									<div
@@ -675,13 +688,29 @@
 										{/each}
 										{#if chatLoading}
 											<div class="flex justify-start">
-												<div class="rounded-2xl bg-white/10 px-4 py-2.5 text-sm text-indigo-300/50">
-													<span class="inline-flex gap-1">
-														<span class="animate-bounce">.</span>
-														<span class="animate-bounce" style="animation-delay: 0.1s">.</span>
-														<span class="animate-bounce" style="animation-delay: 0.2s">.</span>
-													</span>
-												</div>
+												{#if streamingMessage}
+													<div
+														class="max-w-[80%] rounded-2xl bg-white/10 px-4 py-2.5 text-sm text-indigo-100"
+													>
+														{streamingMessage}<span
+															class="ml-0.5 inline-block h-3.5 w-0.5 animate-pulse bg-indigo-300/70 align-middle"
+														></span>
+													</div>
+												{:else}
+													<div
+														class="rounded-2xl bg-white/10 px-4 py-2.5 text-sm text-indigo-300/50"
+													>
+														<span class="inline-flex gap-1">
+															<span class="animate-bounce">.</span>
+															<span class="animate-bounce" style="animation-delay: 0.1s"
+																>.</span
+															>
+															<span class="animate-bounce" style="animation-delay: 0.2s"
+																>.</span
+															>
+														</span>
+													</div>
+												{/if}
 											</div>
 										{/if}
 									</div>
@@ -717,7 +746,7 @@
 										class="stagger-item relative w-full rounded-xl p-4 text-left transition {selectedEmotionalState ===
 										state.id
 											? 'border border-indigo-400/30 bg-indigo-500/10 ring-1 ring-indigo-400/20'
-											: 'border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06]'}"
+											: 'border border-white/8 bg-white/3 hover:bg-white/6'}"
 										style="--stagger: {idx}"
 									>
 										{#if recommendedEmotionalState === state.id}
@@ -736,7 +765,7 @@
 									onclick={() => (selectedEmotionalState = '')}
 									class="stagger-item w-full rounded-xl p-4 text-left transition {selectedEmotionalState === ''
 										? 'border border-indigo-400/30 bg-indigo-500/10 ring-1 ring-indigo-400/20'
-										: 'border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06]'}"
+										: 'border border-white/8 bg-white/3 hover:bg-white/6'}"
 									style="--stagger: {emotionalStates.length}"
 								>
 									<p class="font-medium text-white">None of these</p>
@@ -754,7 +783,7 @@
 										class="stagger-item relative w-full rounded-xl p-4 text-left transition {selectedDeliveryMode ===
 										mode.id
 											? 'border border-indigo-400/30 bg-indigo-500/10 ring-1 ring-indigo-400/20'
-											: 'border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06]'}"
+											: 'border border-white/8 bg-white/3 hover:bg-white/6'}"
 										style="--stagger: {idx}"
 									>
 										{#if recommendedDeliveryMode === mode.id}

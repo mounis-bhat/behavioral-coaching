@@ -21,84 +21,117 @@ type profilingSummary struct {
 	RecommendedEmotionalState string   `json:"recommended_emotional_state"`
 }
 
-// ProfilingAgent wraps a Genkit flow for multi-turn onboarding profiling.
+// ProfilingAgent wraps a Genkit streaming flow for multi-turn onboarding profiling.
 type ProfilingAgent struct {
-	flow *core.Flow[*appbehavior.OnboardingChatRequest, *appbehavior.OnboardingChatResponse, struct{}]
+	flow *core.Flow[*appbehavior.OnboardingChatRequest, *appbehavior.OnboardingChatResponse, string]
 }
 
 func NewProfilingAgent(g *genkit.Genkit) *ProfilingAgent {
-	flow := genkit.DefineFlow(g, "onboardingProfilingFlow", func(ctx context.Context, input *appbehavior.OnboardingChatRequest) (*appbehavior.OnboardingChatResponse, error) {
-		// Count AI messages in history to determine turn number
-		aiTurnCount := 0
-		for _, msg := range input.History {
-			if msg.Role == "assistant" {
-				aiTurnCount++
-			}
-		}
-		nextTurn := aiTurnCount + 1
-
-		if nextTurn > maxProfilingTurns {
-			return nil, fmt.Errorf("maximum profiling turns (%d) exceeded", maxProfilingTurns)
-		}
-
-		systemPrompt := buildProfilingSystemPrompt(input, nextTurn)
-
-		// Build conversation messages
-		var messages []*ai.Message
-		messages = append(messages, ai.NewSystemMessage(ai.NewTextPart(systemPrompt)))
-
-		for _, msg := range input.History {
-			if msg.Role == "user" {
-				messages = append(messages, ai.NewUserMessage(ai.NewTextPart(msg.Content)))
-			} else {
-				messages = append(messages, ai.NewModelMessage(ai.NewTextPart(msg.Content)))
-			}
-		}
-
-		// Add the new user message (empty for first turn when AI initiates)
-		if input.UserMessage != "" {
-			messages = append(messages, ai.NewUserMessage(ai.NewTextPart(input.UserMessage)))
-		}
-
-		hasUserMessage := input.UserMessage != ""
-		if !hasUserMessage {
+	flow := genkit.DefineStreamingFlow(g, "onboardingProfilingFlow",
+		func(ctx context.Context, input *appbehavior.OnboardingChatRequest, sendChunk core.StreamCallback[string]) (*appbehavior.OnboardingChatResponse, error) {
+			// Count AI messages in history to determine turn number
+			aiTurnCount := 0
 			for _, msg := range input.History {
-				if msg.Role == "user" && msg.Content != "" {
-					hasUserMessage = true
-					break
+				if msg.Role == "assistant" {
+					aiTurnCount++
 				}
 			}
-		}
-		if !hasUserMessage {
-			messages = append(messages, ai.NewUserMessage(ai.NewTextPart("Please start the conversation.")))
-		}
+			nextTurn := aiTurnCount + 1
 
-		// Build updated history
-		newHistory := make([]appbehavior.OnboardingChatMessage, len(input.History))
-		copy(newHistory, input.History)
-		if input.UserMessage != "" {
-			newHistory = append(newHistory, appbehavior.OnboardingChatMessage{
-				Role:    "user",
-				Content: input.UserMessage,
-			})
-		}
-
-		if nextTurn == maxProfilingTurns {
-			// Final turn: generate structured summary
-			result, _, err := genkit.GenerateData[profilingSummary](ctx, g,
-				ai.WithMessages(messages...),
-			)
-			if err != nil {
-				return nil, fmt.Errorf("generate profiling summary: %w", err)
+			if nextTurn > maxProfilingTurns {
+				return nil, fmt.Errorf("maximum profiling turns (%d) exceeded", maxProfilingTurns)
 			}
 
-			summaryJSON, err := json.Marshal(result)
-			if err != nil {
-				return nil, fmt.Errorf("marshal profiling summary: %w", err)
+			systemPrompt := buildProfilingSystemPrompt(input, nextTurn)
+
+			// Build conversation messages
+			var messages []*ai.Message
+			messages = append(messages, ai.NewSystemMessage(ai.NewTextPart(systemPrompt)))
+
+			for _, msg := range input.History {
+				if msg.Role == "user" {
+					messages = append(messages, ai.NewUserMessage(ai.NewTextPart(msg.Content)))
+				} else {
+					messages = append(messages, ai.NewModelMessage(ai.NewTextPart(msg.Content)))
+				}
 			}
 
-			// Create a readable final message from the summary
-			aiMessage := fmt.Sprintf("Thanks for sharing all of that with me. I have a good understanding of where you're at now. Based on our conversation, I'd recommend the \"%s\" delivery mode for your daily plans.", readableDeliveryMode(result.RecommendedDeliveryMode))
+			// Add the new user message (empty for first turn when AI initiates)
+			if input.UserMessage != "" {
+				messages = append(messages, ai.NewUserMessage(ai.NewTextPart(input.UserMessage)))
+			}
+
+			hasUserMessage := input.UserMessage != ""
+			if !hasUserMessage {
+				for _, msg := range input.History {
+					if msg.Role == "user" && msg.Content != "" {
+						hasUserMessage = true
+						break
+					}
+				}
+			}
+			if !hasUserMessage {
+				messages = append(messages, ai.NewUserMessage(ai.NewTextPart("Please start the conversation.")))
+			}
+
+			// Build updated history
+			newHistory := make([]appbehavior.OnboardingChatMessage, len(input.History))
+			copy(newHistory, input.History)
+			if input.UserMessage != "" {
+				newHistory = append(newHistory, appbehavior.OnboardingChatMessage{
+					Role:    "user",
+					Content: input.UserMessage,
+				})
+			}
+
+			if nextTurn == maxProfilingTurns {
+				// Final turn: generate structured summary (no streaming — structured JSON output)
+				result, _, err := genkit.GenerateData[profilingSummary](ctx, g,
+					ai.WithMessages(messages...),
+				)
+				if err != nil {
+					return nil, fmt.Errorf("generate profiling summary: %w", err)
+				}
+
+				summaryJSON, err := json.Marshal(result)
+				if err != nil {
+					return nil, fmt.Errorf("marshal profiling summary: %w", err)
+				}
+
+				aiMessage := fmt.Sprintf("Thanks for sharing all of that with me. I have a good understanding of where you're at now. Based on our conversation, I'd recommend the \"%s\" delivery mode for your daily plans.", readableDeliveryMode(result.RecommendedDeliveryMode))
+
+				newHistory = append(newHistory, appbehavior.OnboardingChatMessage{
+					Role:    "assistant",
+					Content: aiMessage,
+				})
+
+				return &appbehavior.OnboardingChatResponse{
+					AIMessage:                 aiMessage,
+					History:                   newHistory,
+					TurnNumber:                nextTurn,
+					IsComplete:                true,
+					Summary:                   summaryJSON,
+					RecommendedDeliveryMode:   result.RecommendedDeliveryMode,
+					RecommendedEmotionalState: result.RecommendedEmotionalState,
+				}, nil
+			}
+
+			// Non-final turn: stream free-text response chunk by chunk
+			stream := genkit.GenerateStream(ctx, g, ai.WithMessages(messages...))
+
+			var aiMessage string
+			for result, err := range stream {
+				if err != nil {
+					return nil, fmt.Errorf("generate profiling response: %w", err)
+				}
+				if result.Done {
+					aiMessage = result.Response.Text()
+					break
+				}
+				if err := sendChunk(ctx, result.Chunk.Text()); err != nil {
+					return nil, fmt.Errorf("send chunk: %w", err)
+				}
+			}
 
 			newHistory = append(newHistory, appbehavior.OnboardingChatMessage{
 				Role:    "assistant",
@@ -106,41 +139,41 @@ func NewProfilingAgent(g *genkit.Genkit) *ProfilingAgent {
 			})
 
 			return &appbehavior.OnboardingChatResponse{
-				AIMessage:                 aiMessage,
-				History:                   newHistory,
-				TurnNumber:                nextTurn,
-				IsComplete:                true,
-				Summary:                   summaryJSON,
-				RecommendedDeliveryMode:   result.RecommendedDeliveryMode,
-				RecommendedEmotionalState: result.RecommendedEmotionalState,
+				AIMessage:  aiMessage,
+				History:    newHistory,
+				TurnNumber: nextTurn,
+				IsComplete: false,
 			}, nil
-		}
-
-		// Non-final turn: free-text conversation
-		resp, err := genkit.Generate(ctx, g, ai.WithMessages(messages...))
-		if err != nil {
-			return nil, fmt.Errorf("generate profiling response: %w", err)
-		}
-
-		aiMessage := resp.Text()
-		newHistory = append(newHistory, appbehavior.OnboardingChatMessage{
-			Role:    "assistant",
-			Content: aiMessage,
 		})
-
-		return &appbehavior.OnboardingChatResponse{
-			AIMessage:  aiMessage,
-			History:    newHistory,
-			TurnNumber: nextTurn,
-			IsComplete: false,
-		}, nil
-	})
 
 	return &ProfilingAgent{flow: flow}
 }
 
+// Chat runs the profiling flow without streaming and returns the complete response.
 func (a *ProfilingAgent) Chat(ctx context.Context, req appbehavior.OnboardingChatRequest) (*appbehavior.OnboardingChatResponse, error) {
 	return a.flow.Run(ctx, &req)
+}
+
+// StreamChat runs the profiling flow and returns a channel of streaming chunks.
+// The channel is closed after the final chunk (Done == true) or on error.
+func (a *ProfilingAgent) StreamChat(ctx context.Context, req appbehavior.OnboardingChatRequest) (<-chan appbehavior.OnboardingChatChunk, error) {
+	out := make(chan appbehavior.OnboardingChatChunk, 16)
+	go func() {
+		defer close(out)
+		for result, err := range a.flow.Stream(ctx, &req) {
+			if err != nil {
+				out <- appbehavior.OnboardingChatChunk{Err: err}
+				return
+			}
+			if result.Done {
+				out <- appbehavior.OnboardingChatChunk{Done: true, Response: result.Output}
+			} else {
+				out <- appbehavior.OnboardingChatChunk{Content: result.Stream}
+			}
+		}
+	}()
+
+	return out, nil
 }
 
 func buildProfilingSystemPrompt(input *appbehavior.OnboardingChatRequest, turn int) string {
