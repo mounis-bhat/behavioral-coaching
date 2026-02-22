@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
-	import { onMount } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 	import { fly } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
 	import {
@@ -52,6 +52,35 @@
 
 	let daysLogged = $derived(moodTrend?.data_points.length ?? 0);
 
+	let editorEl = $state<HTMLDivElement | null>(null);
+	let isBold = $state(false);
+	let isItalic = $state(false);
+	let isList = $state(false);
+	let alignment = $state<'left' | 'center' | 'right'>('left');
+
+	$effect(() => {
+		if (editorEl) {
+			editorEl.innerHTML = untrack(() => normalizeForEditor(content));
+		}
+	});
+
+	$effect(() => {
+		const el = editorEl;
+		if (!el) return;
+		const update = () => {
+			if (el === document.activeElement || el.contains(document.activeElement)) {
+				isBold = document.queryCommandState('bold');
+				isItalic = document.queryCommandState('italic');
+				isList = document.queryCommandState('insertUnorderedList');
+				if (document.queryCommandState('justifyCenter')) alignment = 'center';
+				else if (document.queryCommandState('justifyRight')) alignment = 'right';
+				else alignment = 'left';
+			}
+		};
+		document.addEventListener('selectionchange', update);
+		return () => document.removeEventListener('selectionchange', update);
+	});
+
 	let today = new Date();
 	let promptIndex = today.getDay(); // 0-6
 	let prompt = PROMPTS[promptIndex];
@@ -86,7 +115,7 @@
 	});
 
 	async function handleSave() {
-		if (!content.trim()) {
+		if (!editorEl?.innerText?.trim()) {
 			showToast('Please write something before saving.');
 			return;
 		}
@@ -98,7 +127,7 @@
 		saving = true;
 		try {
 			const result = await upsertJournalEntry({
-				content: content.trim(),
+				content: editorEl?.innerHTML ?? content,
 				mood_score: moodScore,
 				prompt_used: prompt
 			});
@@ -146,6 +175,58 @@
 		if (trend === 'improving') return '↑';
 		if (trend === 'declining') return '↓';
 		return '→';
+	}
+
+	// --- RTE ---
+
+	function normalizeForEditor(text: string): string {
+		// Already HTML (from a previous RTE save) — use as-is
+		if (/<[a-z][\s\S]*>/i.test(text)) return text;
+		// Plain text: escape and convert newlines to <br>
+		return text
+			.replace(/&/g, '&amp;')
+			.replace(/</g, '&lt;')
+			.replace(/>/g, '&gt;')
+			.replace(/\n/g, '<br>');
+	}
+
+	function updateFormattingState() {
+		isBold = document.queryCommandState('bold');
+		isItalic = document.queryCommandState('italic');
+		isList = document.queryCommandState('insertUnorderedList');
+		if (document.queryCommandState('justifyCenter')) alignment = 'center';
+		else if (document.queryCommandState('justifyRight')) alignment = 'right';
+		else alignment = 'left';
+	}
+
+	function execFormat(cmd: string) {
+		editorEl?.focus();
+		document.execCommand(cmd, false);
+		content = editorEl?.innerHTML ?? '';
+		updateFormattingState();
+	}
+
+	function handleEditorInput() {
+		content = editorEl?.innerHTML ?? '';
+	}
+
+	function handleEditorKeydown(e: KeyboardEvent) {
+		if (e.ctrlKey || e.metaKey) {
+			if (e.key === 'b') {
+				e.preventDefault();
+				execFormat('bold');
+			} else if (e.key === 'i') {
+				e.preventDefault();
+				execFormat('italic');
+			}
+		}
+	}
+
+	function handlePaste(e: ClipboardEvent) {
+		e.preventDefault();
+		const text = e.clipboardData?.getData('text/plain') ?? '';
+		document.execCommand('insertText', false, text);
+		content = editorEl?.innerHTML ?? '';
 	}
 </script>
 
@@ -253,14 +334,104 @@
 					</div>
 				</div>
 
-				<!-- Content textarea -->
+				<!-- Content editor (RTE) -->
 				<div in:fly={{ y: 15, duration: 400, delay: 100, easing: cubicOut }}>
-					<textarea
-						bind:value={content}
-						rows={5}
-						placeholder="Write your reflection here… {prompt}"
-						class="w-full resize-none rounded-xl border border-white/10 bg-white/4 px-4 py-3 text-sm text-white placeholder-white/20 transition outline-none focus:border-indigo-400/40 focus:bg-white/6"
-					></textarea>
+					<!-- Toolbar -->
+					<div
+						class="flex items-center gap-0.5 rounded-t-xl border border-b-0 border-white/10 bg-white/3 px-2 py-1.5"
+					>
+						<button
+							type="button"
+							onclick={() => execFormat('bold')}
+							title="Bold (Ctrl+B)"
+							class="rounded px-2.5 py-1 text-sm font-bold transition {isBold
+								? 'bg-white/15 text-white'
+								: 'text-white/40 hover:bg-white/10 hover:text-white/80'}"
+						>B</button>
+						<button
+							type="button"
+							onclick={() => execFormat('italic')}
+							title="Italic (Ctrl+I)"
+							class="rounded px-2.5 py-1 text-sm italic transition {isItalic
+								? 'bg-white/15 text-white'
+								: 'text-white/40 hover:bg-white/10 hover:text-white/80'}"
+						>I</button>
+						<div class="mx-1.5 h-3.5 w-px bg-white/10"></div>
+						<button
+							type="button"
+							onclick={() => execFormat('insertUnorderedList')}
+							title="Bullet list"
+							class="rounded px-2 py-1 transition {isList
+								? 'bg-white/15 text-white'
+								: 'text-white/40 hover:bg-white/10 hover:text-white/80'}"
+						>
+							<svg class="h-4 w-4" viewBox="0 0 16 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+								<circle cx="2" cy="3" r="1" fill="currentColor" stroke="none"/>
+								<circle cx="2" cy="7" r="1" fill="currentColor" stroke="none"/>
+								<circle cx="2" cy="11" r="1" fill="currentColor" stroke="none"/>
+								<line x1="5" y1="3" x2="15" y2="3"/>
+								<line x1="5" y1="7" x2="15" y2="7"/>
+								<line x1="5" y1="11" x2="15" y2="11"/>
+							</svg>
+						</button>
+						<div class="mx-1.5 h-3.5 w-px bg-white/10"></div>
+						<button
+							type="button"
+							onclick={() => execFormat('justifyLeft')}
+							title="Align left"
+							class="rounded px-2 py-1 transition {alignment === 'left'
+								? 'bg-white/15 text-white'
+								: 'text-white/40 hover:bg-white/10 hover:text-white/80'}"
+						>
+							<svg class="h-4 w-4" viewBox="0 0 16 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+								<line x1="1" y1="2" x2="15" y2="2"/>
+								<line x1="1" y1="6" x2="10" y2="6"/>
+								<line x1="1" y1="10" x2="13" y2="10"/>
+							</svg>
+						</button>
+						<button
+							type="button"
+							onclick={() => execFormat('justifyCenter')}
+							title="Align center"
+							class="rounded px-2 py-1 transition {alignment === 'center'
+								? 'bg-white/15 text-white'
+								: 'text-white/40 hover:bg-white/10 hover:text-white/80'}"
+						>
+							<svg class="h-4 w-4" viewBox="0 0 16 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+								<line x1="1" y1="2" x2="15" y2="2"/>
+								<line x1="3.5" y1="6" x2="12.5" y2="6"/>
+								<line x1="2" y1="10" x2="14" y2="10"/>
+							</svg>
+						</button>
+						<button
+							type="button"
+							onclick={() => execFormat('justifyRight')}
+							title="Align right"
+							class="rounded px-2 py-1 transition {alignment === 'right'
+								? 'bg-white/15 text-white'
+								: 'text-white/40 hover:bg-white/10 hover:text-white/80'}"
+						>
+							<svg class="h-4 w-4" viewBox="0 0 16 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+								<line x1="1" y1="2" x2="15" y2="2"/>
+								<line x1="6" y1="6" x2="15" y2="6"/>
+								<line x1="3" y1="10" x2="15" y2="10"/>
+							</svg>
+						</button>
+					</div>
+					<!-- Editor -->
+					<div
+						bind:this={editorEl}
+						contenteditable="true"
+						role="textbox"
+						tabindex="0"
+						aria-multiline="true"
+						aria-label="Journal entry"
+						data-placeholder="Write your reflection here…"
+						oninput={handleEditorInput}
+						onkeydown={handleEditorKeydown}
+						onpaste={handlePaste}
+						class="rte min-h-32 w-full rounded-b-xl border border-white/10 bg-white/4 px-4 py-3 text-sm text-white outline-none transition focus:border-indigo-400/40 focus:bg-white/6"
+					></div>
 				</div>
 
 				<!-- Save button -->
@@ -368,7 +539,8 @@
 											{#if entry.prompt_used}
 												<p class="mb-2 text-xs text-indigo-300/50 italic">{entry.prompt_used}</p>
 											{/if}
-											<p class="text-sm whitespace-pre-wrap text-white/70">{entry.content}</p>
+											<!-- eslint-disable-next-line svelte/no-at-html-tags -->
+										<div class="entry-content text-sm text-white/70">{@html entry.content}</div>
 										</div>
 									{/if}
 								</div>
@@ -384,5 +556,34 @@
 <style>
 	.dashboard-bg {
 		background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 40%, #312e81 100%);
+	}
+
+	/* RTE editor */
+	.rte:empty::before {
+		content: attr(data-placeholder);
+		color: rgba(255, 255, 255, 0.2);
+		pointer-events: none;
+		display: block;
+	}
+
+	.rte :global(b),
+	.rte :global(strong),
+	.entry-content :global(b),
+	.entry-content :global(strong) {
+		font-weight: 600;
+	}
+
+	.rte :global(i),
+	.rte :global(em),
+	.entry-content :global(i),
+	.entry-content :global(em) {
+		font-style: italic;
+	}
+
+	.rte :global(ul),
+	.entry-content :global(ul) {
+		list-style: disc;
+		padding-left: 1.25rem;
+		margin: 0.25rem 0;
 	}
 </style>
