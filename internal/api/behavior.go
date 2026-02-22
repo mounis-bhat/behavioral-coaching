@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -147,6 +148,7 @@ func (h *BehaviorHandler) HandleGeneratePlan(w http.ResponseWriter, r *http.Requ
 
 	plan, err := h.service.GenerateDailyPlan(r.Context(), user.ID)
 	if err != nil {
+		log.Printf("GenerateDailyPlan failed for user %s: %v", user.ID, err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to generate plan"})
 		return
 	}

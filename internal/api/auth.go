@@ -138,7 +138,7 @@ func NewAuthHandler(store *storage.Store, cfg config.AuthConfig, googleCfg confi
 			postLoginRedirect = "/"
 		} else if parsed.Host != "" {
 			baseURL := strings.TrimRight(emailCfg.AppBaseURL, "/")
-			if baseParsed, err := url.Parse(baseURL); err != nil || parsed.Host != baseParsed.Host {
+			if baseParsed, err := url.Parse(baseURL); err != nil || parsed.Hostname() != baseParsed.Hostname() {
 				postLoginRedirect = "/"
 			}
 		}

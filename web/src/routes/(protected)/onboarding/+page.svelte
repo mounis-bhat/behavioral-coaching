@@ -406,8 +406,9 @@
 			const updateResult = await updateProfile({ onboarding_completed: true });
 			if (updateResult.error) throw new Error(updateResult.error);
 
-			const planResult = await generatePlan();
-			if (planResult.error) throw new Error(planResult.error);
+			// Best-effort: generate the first plan. If it fails the user can
+			// generate it from the dashboard — don't block the redirect.
+			await generatePlan();
 
 			celebrating = true;
 			confettiPieces = generateConfetti();
