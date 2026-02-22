@@ -339,6 +339,12 @@
 				</div>
 				<div class="flex items-center gap-2">
 					<a
+						href={resolve('/journal')}
+						class="rounded-lg px-3 py-1.5 text-sm text-indigo-200/60 transition hover:bg-white/10 hover:text-white"
+					>
+						Journal
+					</a>
+					<a
 						href={resolve('/settings')}
 						aria-label="Settings"
 						class="rounded-lg px-3 py-1.5 text-sm text-indigo-200/60 transition hover:bg-white/10 hover:text-white"

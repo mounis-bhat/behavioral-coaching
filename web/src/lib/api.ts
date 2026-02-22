@@ -221,6 +221,92 @@ export async function fetchAdaptations(): Promise<ApiResponse<AdaptationLogRespo
 	}
 }
 
+// --- Journal types ---
+
+export type JournalEntryResponse = {
+	id: string;
+	user_id: string;
+	content: string;
+	mood_score: number;
+	prompt_used: string;
+	entry_date: string;
+	created_at: string;
+	updated_at: string;
+};
+
+export type MoodDataPoint = { date: string; score: number };
+
+export type MoodTrendResponse = {
+	avg_score: number;
+	trend: 'improving' | 'stable' | 'declining';
+	data_points: MoodDataPoint[];
+};
+
+export type UpsertJournalEntryInput = {
+	content: string;
+	mood_score: number;
+	prompt_used: string;
+};
+
+// --- Journal API ---
+
+export async function upsertJournalEntry(
+	input: UpsertJournalEntryInput
+): Promise<ApiResponse<JournalEntryResponse>> {
+	try {
+		const res = await fetch(`${BASE_URL}/journal/entries`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(input)
+		});
+		if (!res.ok) {
+			const payload = await res.json();
+			throw new Error(payload.error ?? `HTTP ${res.status}`);
+		}
+		const data: JournalEntryResponse = await res.json();
+		return { data, error: null };
+	} catch (e) {
+		return { data: null, error: e instanceof Error ? e.message : 'Unknown error' };
+	}
+}
+
+export async function getTodaysJournalEntry(): Promise<ApiResponse<JournalEntryResponse>> {
+	try {
+		const res = await fetch(`${BASE_URL}/journal/entries/today`);
+		if (res.status === 404) return { data: null, error: 'not_found' };
+		if (!res.ok) throw new Error(`HTTP ${res.status}`);
+		const data: JournalEntryResponse = await res.json();
+		return { data, error: null };
+	} catch (e) {
+		return { data: null, error: e instanceof Error ? e.message : 'Unknown error' };
+	}
+}
+
+export async function listJournalEntries(
+	limit = 20,
+	offset = 0
+): Promise<ApiResponse<JournalEntryResponse[]>> {
+	try {
+		const res = await fetch(`${BASE_URL}/journal/entries?limit=${limit}&offset=${offset}`);
+		if (!res.ok) throw new Error(`HTTP ${res.status}`);
+		const data: JournalEntryResponse[] = await res.json();
+		return { data, error: null };
+	} catch (e) {
+		return { data: null, error: e instanceof Error ? e.message : 'Unknown error' };
+	}
+}
+
+export async function getJournalMoodTrend(): Promise<ApiResponse<MoodTrendResponse>> {
+	try {
+		const res = await fetch(`${BASE_URL}/journal/mood-trend`);
+		if (!res.ok) throw new Error(`HTTP ${res.status}`);
+		const data: MoodTrendResponse = await res.json();
+		return { data, error: null };
+	} catch (e) {
+		return { data: null, error: e instanceof Error ? e.message : 'Unknown error' };
+	}
+}
+
 export async function onboardingChat(
 	userMessage: string,
 	history: OnboardingChatMessage[],

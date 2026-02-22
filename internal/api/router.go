@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/mounis-bhat/starter/internal/app/behavior"
+	"github.com/mounis-bhat/starter/internal/app/journal"
 	"github.com/mounis-bhat/starter/internal/config"
 	"github.com/mounis-bhat/starter/internal/email"
 	"github.com/mounis-bhat/starter/internal/ratelimit"
@@ -11,7 +12,7 @@ import (
 	"github.com/mounis-bhat/starter/internal/storage/blob"
 )
 
-func NewRouter(cfg *config.Config, store *storage.Store, behaviorService *behavior.Service, blobClient *blob.Client, mailer email.Mailer) *http.ServeMux {
+func NewRouter(cfg *config.Config, store *storage.Store, behaviorService *behavior.Service, journalService *journal.Service, blobClient *blob.Client, mailer email.Mailer) *http.ServeMux {
 	mux := http.NewServeMux()
 
 	var limiter RateLimiter
@@ -21,6 +22,7 @@ func NewRouter(cfg *config.Config, store *storage.Store, behaviorService *behavi
 	authHandler := NewAuthHandler(store, cfg.Auth, cfg.Google, cfg.Email, cfg.RateLimit, limiter, mailer)
 	avatarHandler := NewAvatarHandler(store, blobClient, cfg.Storage)
 	behaviorHandler := NewBehaviorHandler(behaviorService)
+	journalHandler := NewJournalHandler(journalService)
 
 	// API routes
 	mux.HandleFunc("GET /api/health", handleHealth)
@@ -51,6 +53,12 @@ func NewRouter(cfg *config.Config, store *storage.Store, behaviorService *behavi
 	mux.Handle("GET /api/behavior/adaptations", authHandler.RequireAuth(http.HandlerFunc(behaviorHandler.HandleGetAdaptations)))
 	mux.Handle("GET /api/behavior/plan/today/logs", authHandler.RequireAuth(http.HandlerFunc(behaviorHandler.HandleGetTodaysExecutionLogs)))
 	mux.Handle("GET /api/behavior/analytics", authHandler.RequireAuth(http.HandlerFunc(behaviorHandler.HandleGetAnalytics)))
+
+	// Journal routes
+	mux.Handle("POST /api/journal/entries", authHandler.RequireAuth(http.HandlerFunc(journalHandler.HandleUpsertEntry)))
+	mux.Handle("GET /api/journal/entries/today", authHandler.RequireAuth(http.HandlerFunc(journalHandler.HandleGetToday)))
+	mux.Handle("GET /api/journal/entries", authHandler.RequireAuth(http.HandlerFunc(journalHandler.HandleListEntries)))
+	mux.Handle("GET /api/journal/mood-trend", authHandler.RequireAuth(http.HandlerFunc(journalHandler.HandleGetMoodTrend)))
 
 	// Documentation routes (dev only)
 	if cfg.Env == "development" {

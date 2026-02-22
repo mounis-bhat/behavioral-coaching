@@ -9,6 +9,7 @@ import (
 	"github.com/mounis-bhat/starter/internal/ai/behavior"
 	"github.com/mounis-bhat/starter/internal/api"
 	appbehavior "github.com/mounis-bhat/starter/internal/app/behavior"
+	"github.com/mounis-bhat/starter/internal/app/journal"
 	"github.com/mounis-bhat/starter/internal/config"
 	"github.com/mounis-bhat/starter/internal/email"
 	"github.com/mounis-bhat/starter/internal/service"
@@ -47,6 +48,7 @@ func main() {
 	adaptationAdvisor := behavior.NewAdaptationAdvisor(g)
 	profilingAgent := behavior.NewProfilingAgent(g)
 	behaviorService := appbehavior.NewService(store.Queries, planningAgent, adaptationAdvisor, profilingAgent)
+	journalService := journal.NewService(store.Queries)
 
 	blobClient, err := blob.New(ctx, blob.Config{
 		Endpoint:           cfg.Storage.Endpoint,
@@ -178,7 +180,7 @@ func main() {
 	}
 
 	// Setup router
-	mux := api.NewRouter(cfg, store, behaviorService, blobClient, mailer)
+	mux := api.NewRouter(cfg, store, behaviorService, journalService, blobClient, mailer)
 	root := http.NewServeMux()
 	root.Handle("/", api.WithSecurityHeaders(cfg, mux))
 

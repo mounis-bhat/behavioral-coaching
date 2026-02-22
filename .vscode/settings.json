@@ -12,6 +12,7 @@
         "joho",
         "jsonschema",
         "maxmemory",
+        "sparkline",
         "sqlc",
         "valkey"
     ]

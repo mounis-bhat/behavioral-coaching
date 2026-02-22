@@ -46,10 +46,13 @@ type Querier interface {
 	GetExecutionLogsByDailyPlan(ctx context.Context, dailyPlanID pgtype.UUID) ([]ExecutionLog, error)
 	GetExecutionLogsByUser(ctx context.Context, arg GetExecutionLogsByUserParams) ([]ExecutionLog, error)
 	GetInactiveUsers(ctx context.Context) ([]GetInactiveUsersRow, error)
+	GetJournalEntriesByUser(ctx context.Context, arg GetJournalEntriesByUserParams) ([]JournalEntry, error)
+	GetJournalEntryByDate(ctx context.Context, arg GetJournalEntryByDateParams) (JournalEntry, error)
 	GetOldestUserSession(ctx context.Context, userID pgtype.UUID) (Session, error)
 	GetPlanTaskByID(ctx context.Context, id pgtype.UUID) (PlanTask, error)
 	GetPlanTasksByDailyPlan(ctx context.Context, dailyPlanID pgtype.UUID) ([]PlanTask, error)
 	GetRecentDailyPlans(ctx context.Context, arg GetRecentDailyPlansParams) ([]DailyPlan, error)
+	GetRecentMoodScores(ctx context.Context, arg GetRecentMoodScoresParams) ([]GetRecentMoodScoresRow, error)
 	GetRelapsingUsers(ctx context.Context) ([]GetRelapsingUsersRow, error)
 	GetSessionByTokenHash(ctx context.Context, tokenHash string) (GetSessionByTokenHashRow, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
@@ -75,6 +78,8 @@ type Querier interface {
 	UpsertAdherenceState(ctx context.Context, arg UpsertAdherenceStateParams) (AdherenceState, error)
 	// Execution Logs
 	UpsertExecutionLog(ctx context.Context, arg UpsertExecutionLogParams) (ExecutionLog, error)
+	// Journal Entries
+	UpsertJournalEntry(ctx context.Context, arg UpsertJournalEntryParams) (JournalEntry, error)
 	UpsertUserByGoogleID(ctx context.Context, arg UpsertUserByGoogleIDParams) (User, error)
 	VerifyUserEmail(ctx context.Context, id pgtype.UUID) (User, error)
 }

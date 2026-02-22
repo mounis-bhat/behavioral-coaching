@@ -81,6 +81,17 @@ type ExecutionLog struct {
 	CreatedAt   pgtype.Timestamptz `json:"created_at"`
 }
 
+type JournalEntry struct {
+	ID         pgtype.UUID        `json:"id"`
+	UserID     pgtype.UUID        `json:"user_id"`
+	Content    string             `json:"content"`
+	MoodScore  int32              `json:"mood_score"`
+	PromptUsed string             `json:"prompt_used"`
+	EntryDate  pgtype.Date        `json:"entry_date"`
+	CreatedAt  pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt  pgtype.Timestamptz `json:"updated_at"`
+}
+
 type PlanTask struct {
 	ID            pgtype.UUID        `json:"id"`
 	DailyPlanID   pgtype.UUID        `json:"daily_plan_id"`
