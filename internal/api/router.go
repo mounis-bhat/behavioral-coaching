@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/mounis-bhat/starter/internal/app/behavior"
+	"github.com/mounis-bhat/starter/internal/app/chat"
 	"github.com/mounis-bhat/starter/internal/app/journal"
 	"github.com/mounis-bhat/starter/internal/config"
 	"github.com/mounis-bhat/starter/internal/email"
@@ -12,7 +13,7 @@ import (
 	"github.com/mounis-bhat/starter/internal/storage/blob"
 )
 
-func NewRouter(cfg *config.Config, store *storage.Store, behaviorService *behavior.Service, journalService *journal.Service, blobClient *blob.Client, mailer email.Mailer) *http.ServeMux {
+func NewRouter(cfg *config.Config, store *storage.Store, behaviorService *behavior.Service, journalService *journal.Service, chatService *chat.Service, blobClient *blob.Client, mailer email.Mailer) *http.ServeMux {
 	mux := http.NewServeMux()
 
 	var limiter RateLimiter
@@ -23,6 +24,7 @@ func NewRouter(cfg *config.Config, store *storage.Store, behaviorService *behavi
 	avatarHandler := NewAvatarHandler(store, blobClient, cfg.Storage)
 	behaviorHandler := NewBehaviorHandler(behaviorService)
 	journalHandler := NewJournalHandler(journalService)
+	chatHandler := NewChatHandler(chatService)
 
 	// API routes
 	mux.HandleFunc("GET /api/health", handleHealth)
@@ -59,6 +61,11 @@ func NewRouter(cfg *config.Config, store *storage.Store, behaviorService *behavi
 	mux.Handle("GET /api/journal/entries/today", authHandler.RequireAuth(http.HandlerFunc(journalHandler.HandleGetToday)))
 	mux.Handle("GET /api/journal/entries", authHandler.RequireAuth(http.HandlerFunc(journalHandler.HandleListEntries)))
 	mux.Handle("GET /api/journal/mood-trend", authHandler.RequireAuth(http.HandlerFunc(journalHandler.HandleGetMoodTrend)))
+
+	// Chat routes
+	mux.Handle("GET /api/chat/messages", authHandler.RequireAuth(http.HandlerFunc(chatHandler.HandleListMessages)))
+	mux.Handle("POST /api/chat/messages", authHandler.RequireAuth(http.HandlerFunc(chatHandler.HandleSendMessage)))
+	mux.Handle("DELETE /api/chat/messages", authHandler.RequireAuth(http.HandlerFunc(chatHandler.HandleClearHistory)))
 
 	// Documentation routes (dev only)
 	if cfg.Env == "development" {

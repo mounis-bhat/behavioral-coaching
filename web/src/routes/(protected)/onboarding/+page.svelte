@@ -552,7 +552,7 @@
 									<select
 										id="time"
 										bind:value={timeAvailability}
-										class="dark-select w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 pr-10 text-sm text-white focus:border-indigo-400/40 focus:ring-1 focus:ring-indigo-400/30 focus:outline-none"
+										class="themed-select w-full rounded-lg border border-white/10 px-3 py-2.5 text-sm text-white focus:border-indigo-400/40 focus:ring-1 focus:ring-indigo-400/30 focus:outline-none"
 									>
 										<option value="30min">30 minutes</option>
 										<option value="1hr">1 hour</option>
@@ -1102,13 +1102,17 @@
 	}
 
 	/* Select dropdown */
-	.dark-select {
+	.themed-select {
 		-webkit-appearance: none;
 		appearance: none;
-		color-scheme: dark;
+		background-color: #1e1b4b;
 		background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23818cf8' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
 		background-repeat: no-repeat;
 		background-position: right 12px center;
+	}
+	.themed-select option {
+		background-color: #1e1b4b;
+		color: white;
 	}
 
 	/* Chat scrollbar */

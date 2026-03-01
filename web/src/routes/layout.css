@@ -2,6 +2,27 @@
 
 html, body {
 	background-color: #0f172a;
+	color-scheme: dark;
+}
+
+/* Global themed scrollbar */
+* {
+	scrollbar-width: thin;
+	scrollbar-color: rgba(99, 102, 241, 0.25) transparent;
+}
+*::-webkit-scrollbar {
+	width: 4px;
+	height: 4px;
+}
+*::-webkit-scrollbar-track {
+	background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+	background: rgba(99, 102, 241, 0.25);
+	border-radius: 9999px;
+}
+*::-webkit-scrollbar-thumb:hover {
+	background: rgba(99, 102, 241, 0.45);
 }
 
 @view-transition {

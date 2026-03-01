@@ -18,6 +18,8 @@ type Querier interface {
 	CreateAuditLog(ctx context.Context, arg CreateAuditLogParams) error
 	// Behavior Profiles
 	CreateBehaviorProfile(ctx context.Context, arg CreateBehaviorProfileParams) (BehaviorProfile, error)
+	// Chat Messages
+	CreateChatMessage(ctx context.Context, arg CreateChatMessageParams) (ChatMessage, error)
 	// Daily Plans
 	CreateDailyPlan(ctx context.Context, arg CreateDailyPlanParams) (DailyPlan, error)
 	// Plan Tasks
@@ -27,6 +29,7 @@ type Querier interface {
 	// Users
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	DeleteBehaviorProfile(ctx context.Context, userID pgtype.UUID) error
+	DeleteChatHistory(ctx context.Context, userID pgtype.UUID) error
 	DeleteExpiredSessions(ctx context.Context) error
 	DeleteSession(ctx context.Context, id pgtype.UUID) error
 	DeleteSessionByTokenHash(ctx context.Context, tokenHash string) error
@@ -63,6 +66,7 @@ type Querier interface {
 	GetUsersWithTodayAdherence(ctx context.Context) ([]pgtype.UUID, error)
 	GetWeeklyCompletionTrends(ctx context.Context, userID pgtype.UUID) ([]GetWeeklyCompletionTrendsRow, error)
 	IncrementFailedLoginAttempts(ctx context.Context, id pgtype.UUID) (User, error)
+	ListChatMessages(ctx context.Context, arg ListChatMessagesParams) ([]ChatMessage, error)
 	LockUser(ctx context.Context, arg LockUserParams) error
 	PurgeAuditLogsBefore(ctx context.Context, createdAt pgtype.Timestamptz) (int64, error)
 	ResetFailedLoginAttempts(ctx context.Context, id pgtype.UUID) error

@@ -345,6 +345,103 @@ type OnboardingChatContext = {
 	psychological_state?: Record<string, unknown>;
 };
 
+// --- Chat types ---
+
+export type ChatMessage = Omit<
+	DeepRequired<components['schemas']['chat.ChatMessageResponse']>,
+	'role'
+> & { role: 'user' | 'assistant' };
+
+export type SendMessageResponse = {
+	user_message: ChatMessage;
+	assistant_message: ChatMessage;
+};
+
+// --- Chat API ---
+
+export async function listChatMessages(limit = 50): Promise<ApiResponse<ChatMessage[]>> {
+	try {
+		const res = await fetch(`${BASE_URL}/chat/messages?limit=${limit}`);
+		if (!res.ok) throw new Error(`HTTP ${res.status}`);
+		const data: ChatMessage[] = await res.json();
+		return { data, error: null };
+	} catch (e) {
+		return { data: null, error: e instanceof Error ? e.message : 'Unknown error' };
+	}
+}
+
+export async function clearChatHistory(): Promise<ApiResponse<void>> {
+	try {
+		const res = await fetch(`${BASE_URL}/chat/messages`, { method: 'DELETE' });
+		if (!res.ok) throw new Error(`HTTP ${res.status}`);
+		return { data: undefined, error: null };
+	} catch (e) {
+		return { data: null, error: e instanceof Error ? e.message : 'Unknown error' };
+	}
+}
+
+export async function sendChatMessage(
+	content: string,
+	onChunk: (text: string) => void,
+	onDone: (resp: SendMessageResponse) => void,
+	onError: (error: string) => void
+): Promise<void> {
+	try {
+		const res = await fetch(`${BASE_URL}/chat/messages`, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				Accept: 'text/event-stream'
+			},
+			body: JSON.stringify({ content })
+		});
+
+		if (!res.ok || !res.body) {
+			const payload = await res.json().catch(() => ({}));
+			onError((payload as { error?: string }).error ?? `HTTP ${res.status}`);
+			return;
+		}
+
+		const reader = res.body.getReader();
+		const decoder = new TextDecoder();
+		let buffer = '';
+
+		while (true) {
+			const { done, value } = await reader.read();
+			if (done) break;
+
+			buffer += decoder.decode(value, { stream: true });
+			const blocks = buffer.split('\n\n');
+			buffer = blocks.pop() ?? '';
+
+			for (const block of blocks) {
+				if (!block.startsWith('data: ')) continue;
+				try {
+					const event = JSON.parse(block.slice(6)) as {
+						error?: string;
+						done?: boolean;
+						content?: string;
+						response?: SendMessageResponse;
+					};
+					if (event.error) {
+						onError(event.error);
+						return;
+					}
+					if (event.done && event.response) {
+						onDone(event.response);
+					} else if (event.content) {
+						onChunk(event.content);
+					}
+				} catch {
+					// skip malformed event
+				}
+			}
+		}
+	} catch (e) {
+		onError(e instanceof Error ? e.message : 'Unknown error');
+	}
+}
+
 export async function streamOnboardingChat(
 	userMessage: string,
 	history: OnboardingChatMessage[],

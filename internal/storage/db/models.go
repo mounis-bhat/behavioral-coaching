@@ -60,6 +60,14 @@ type BehaviorProfile struct {
 	AiProfileSummary    []byte             `json:"ai_profile_summary"`
 }
 
+type ChatMessage struct {
+	ID        pgtype.UUID        `json:"id"`
+	UserID    pgtype.UUID        `json:"user_id"`
+	Role      string             `json:"role"`
+	Content   string             `json:"content"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+}
+
 type DailyPlan struct {
 	ID              pgtype.UUID        `json:"id"`
 	UserID          pgtype.UUID        `json:"user_id"`
